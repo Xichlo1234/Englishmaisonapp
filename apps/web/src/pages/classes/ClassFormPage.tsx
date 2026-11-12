@@ -8,6 +8,7 @@ import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { DateInput } from '@/components/ui/date-input';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Textarea } from '@/components/ui/textarea';
 import { FormField } from '@/components/common/form-field';
@@ -148,10 +149,10 @@ function ClassForm({ cls }: { cls?: ClassDetail }) {
             </FormField>
             <div />
             <FormField label="Ngày bắt đầu" htmlFor="start" required error={errors.startDate}>
-              <Input id="start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              <DateInput id="start" value={startDate} onChange={setStartDate} />
             </FormField>
             <FormField label="Ngày kết thúc (dự kiến)" htmlFor="end" error={errors.endDate}>
-              <Input id="end" type="date" value={endDate} min={startDate} onChange={(e) => setEndDate(e.target.value)} />
+              <DateInput id="end" min={startDate} value={endDate} onChange={setEndDate} />
             </FormField>
             <FormField label="Ghi chú" htmlFor="notes" className="sm:col-span-2">
               <Textarea id="notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />

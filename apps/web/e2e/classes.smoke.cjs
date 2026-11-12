@@ -24,6 +24,7 @@ async function step(name, fn) {
   }
 }
 
+const toVn = (iso) => iso.split('-').reverse().join('/');
 const vnToday = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
 const isoWeekday = (d) => {
   const w = new Date(d + 'T00:00:00Z').getUTCDay();
@@ -176,7 +177,7 @@ const apiCall = (page, p, body) =>
       const val = await page.locator('#tr-class option', { hasText: 'MOV-B' }).getAttribute('value');
       await page.selectOption('#tr-class', val);
       const tomorrow = new Date(Date.parse(today) + 86400e3).toISOString().slice(0, 10);
-      await page.fill('#tr-date', tomorrow);
+      await page.fill('#tr-date', toVn(tomorrow));
       await page.fill('#tr-reason', 'Đổi sang ca 2 cho phù hợp giờ học ở trường');
       await shot('c05-transfer');
       await page.getByRole('button', { name: 'Xác nhận chuyển' }).click();
@@ -217,7 +218,7 @@ const apiCall = (page, p, body) =>
     await step('Đóng lớp B: học sinh được rút khỏi lớp', async () => {
       await page.goto(classBUrl);
       await page.getByRole('button', { name: 'Đóng lớp' }).click();
-      await page.fill('#drd-date', new Date(Date.parse(today) + 86400e3).toISOString().slice(0, 10));
+      await page.fill('#drd-date', toVn(new Date(Date.parse(today) + 86400e3).toISOString().slice(0, 10)));
       await page.fill('#drd-reason', 'Gộp lớp');
       await page.getByRole('dialog').getByRole('button', { name: 'Đóng lớp' }).click();
       await page.getByText('Đã đóng lớp').waitFor();

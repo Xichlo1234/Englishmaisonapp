@@ -7,6 +7,7 @@ import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { DateInput } from '@/components/ui/date-input';
 import { Textarea } from '@/components/ui/textarea';
 import { FormField } from '@/components/common/form-field';
 import { errorMessage } from '@/components/common/page';
@@ -99,12 +100,12 @@ export function StatusActionDialog({ student, action, onClose }: { student: Stud
           {error && <Alert variant="destructive">{error}</Alert>}
           {m.date && (
             <FormField label="Ngày hiệu lực" htmlFor="eff" required>
-              <Input id="eff" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <DateInput id="eff" value={date} onChange={setDate} />
             </FormField>
           )}
           {m.until && (
             <FormField label="Dự kiến quay lại" htmlFor="until">
-              <Input id="until" type="date" value={until} min={date} onChange={(e) => setUntil(e.target.value)} />
+              <DateInput id="until" min={date} value={until} onChange={setUntil} />
             </FormField>
           )}
           {m.reason !== 'none' && (

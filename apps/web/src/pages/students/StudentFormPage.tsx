@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { useFieldArray, useForm, useWatch, type UseFormReturn } from 'react-hook-form';
+import { Controller, useFieldArray, useForm, useWatch, type UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { DateInput } from '@/components/ui/date-input';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Textarea } from '@/components/ui/textarea';
 import { FormField } from '@/components/common/form-field';
@@ -251,7 +252,11 @@ function StudentForm({ student }: { student?: StudentDetail }) {
               <Input id="fullName" {...form.register('fullName')} aria-invalid={!!e.fullName} autoFocus={!isEdit} />
             </FormField>
             <FormField label="Ngày sinh" htmlFor="dob" error={e.dateOfBirth?.message}>
-              <Input id="dob" type="date" {...form.register('dateOfBirth')} aria-invalid={!!e.dateOfBirth} />
+              <Controller
+                control={form.control}
+                name="dateOfBirth"
+                render={({ field }) => <DateInput id="dob" value={field.value} onChange={field.onChange} onBlur={field.onBlur} aria-invalid={!!e.dateOfBirth} />}
+              />
             </FormField>
             <FormField label="Giới tính" htmlFor="gender">
               <NativeSelect id="gender" {...form.register('gender')}>
@@ -279,7 +284,11 @@ function StudentForm({ student }: { student?: StudentDetail }) {
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <FormField label="Ngày bắt đầu học" htmlFor="start" required error={e.startDate?.message}>
-              <Input id="start" type="date" {...form.register('startDate')} aria-invalid={!!e.startDate} />
+              <Controller
+                control={form.control}
+                name="startDate"
+                render={({ field }) => <DateInput id="start" value={field.value} onChange={field.onChange} onBlur={field.onBlur} aria-invalid={!!e.startDate} />}
+              />
             </FormField>
             <FormField label="Trình độ tiếng Anh" htmlFor="level" hint="Danh mục cấu hình trong Cài đặt">
               <NativeSelect id="level" {...form.register('englishLevel')}>

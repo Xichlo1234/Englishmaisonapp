@@ -13,16 +13,13 @@ export const studentStatusLabel = (s: StudentStatus) => STUDENT_STATUS_LABELS[s]
 
 export const GENDER_LABELS: Record<string, string> = { MALE: 'Nam', FEMALE: 'Nữ', OTHER: 'Khác' };
 
+/** Thời điểm ISO (UTC) → "dd/mm/yyyy HH:mm" theo giờ Việt Nam. */
 export function formatDateTimeVN(iso: string | null | undefined): string {
   if (!iso) return '';
-  return new Date(iso).toLocaleString('vi-VN', {
-    timeZone: 'Asia/Ho_Chi_Minh',
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const t = new Date(new Date(iso).getTime() + 7 * 3600_000);
+  if (Number.isNaN(t.getTime())) return '';
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${p(t.getUTCDate())}/${p(t.getUTCMonth() + 1)}/${t.getUTCFullYear()} ${p(t.getUTCHours())}:${p(t.getUTCMinutes())}`;
 }
 
 export function ageFrom(dob: string | null | undefined): number | null {

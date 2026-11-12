@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { TimeInput } from '@/components/ui/date-input';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -354,10 +355,10 @@ function ShiftSheet({ shift, onClose }: { shift: Shift | 'new' | null; onClose: 
         </FormField>
         <div className="grid grid-cols-2 gap-3">
           <FormField label="Bắt đầu" htmlFor="sh-start" required>
-            <Input id="sh-start" type="time" value={start} onChange={(e) => setStart(e.target.value)} />
+            <TimeInput id="sh-start" value={start} onChange={setStart} />
           </FormField>
           <FormField label="Kết thúc" htmlFor="sh-end" required error={start && end && start >= end ? 'Phải sau giờ bắt đầu' : undefined}>
-            <Input id="sh-end" type="time" value={end} onChange={(e) => setEnd(e.target.value)} />
+            <TimeInput id="sh-end" value={end} onChange={setEnd} />
           </FormField>
         </div>
         {s && (

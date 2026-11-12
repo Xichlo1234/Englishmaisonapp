@@ -103,3 +103,13 @@ Thêm giáo viên (hiện mật khẩu tạm một lần) · thêm phòng · t�
 ### Lỗi phát hiện và đã sửa
 1. Ca mới tạo có thứ tự 0 nên chen lên trước Ca 1/2/3 → ca mới mặc định xếp cuối.
 2. Script E2E: tiến trình `workerd` cũ còn giữ cổng sau khi xóa D1 local → script dừng hẳn tiến trình và dùng DB sạch cho từng kịch bản.
+
+## Cập nhật giao diện theo góp ý chủ dự án (12/11/2026)
+
+| Yêu cầu | Thực hiện | Kiểm thử |
+|---|---|---|
+| Ngày tháng dạng **dd/mm/yyyy** | Ô nhập ngày riêng (`DateInput`) luôn hiển thị dd/mm/yyyy, không phụ thuộc ngôn ngữ trình duyệt; gõ liền số tự chèn "/"; nút lịch để chọn nhanh; ngày không tồn tại (VD 30/02) bị xóa khi rời ô. Ô giờ dạng 24h HH:MM. Ngày giờ trong nhật ký hiển thị "dd/mm/yyyy HH:mm" theo giờ Việt Nam. Giá trị gửi API vẫn là ISO. | E2E: bước "Ô ngày hiển thị dd/mm/yyyy, tự chèn "/" và từ chối ngày không tồn tại"; toàn bộ form nhập ngày đi qua E2E |
+| Màu sắc thanh menu | Mỗi mục có màu nhận diện riêng (ô biểu tượng + nền khi đang chọn): Tổng quan xanh dương, Học sinh chàm, Lớp học tím, Ca học vàng, Điểm danh xanh lá, Điểm số hồng, Học phí xanh ngọc, Giáo viên cam, Báo cáo xanh lơ, Cài đặt xám. Đỏ chỉ dùng cho lỗi/vắng. | Ảnh chụp E2E |
+| Hình ảnh nền | 4 hình SVG tự thiết kế (không dùng hình có bản quyền): minh họa trang đăng nhập, họa tiết chữ cái ABC rất mờ ở nền (vẫn giữ nền trắng), minh họa cuối thanh menu, minh họa màn hình trống. Tổng < 7KB. | Ảnh chụp E2E |
+
+E2E sau cập nhật: ✅ 27/27 bước.

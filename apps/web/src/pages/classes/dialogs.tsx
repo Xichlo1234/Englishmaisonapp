@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { DateInput } from '@/components/ui/date-input';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
@@ -69,7 +70,7 @@ export function DateReasonDialog({
         {error && <Alert variant="destructive">{error}</Alert>}
         {dateLabel && (
           <FormField label={dateLabel} htmlFor="drd-date" required>
-            <Input id="drd-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <DateInput id="drd-date" value={date} onChange={setDate} />
           </FormField>
         )}
         <FormField label="Lý do" htmlFor="drd-reason" required={reasonRequired}>
@@ -170,7 +171,7 @@ export function EnrollStudentsSheet({
         </SheetHeader>
         {error && <Alert variant="destructive">{error}</Alert>}
         <FormField label="Ngày vào lớp" htmlFor="enroll-date" required>
-          <Input id="enroll-date" type="date" min={classStartDate} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+          <DateInput id="enroll-date" min={classStartDate} value={startDate} onChange={setStartDate} />
         </FormField>
         <div className="relative">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -299,7 +300,7 @@ export function TransferSheet({
           </div>
         )}
         <FormField label="Học lớp mới từ ngày" htmlFor="tr-date" required hint={date ? `Lớp cũ kết thúc ngày ${formatDateVN(addDays(date, -1))}` : undefined}>
-          <Input id="tr-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <DateInput id="tr-date" value={date} onChange={setDate} />
         </FormField>
         <FormField label="Lý do" htmlFor="tr-reason" required>
           <Textarea id="tr-reason" rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="VD: Đổi sang ca tối cho phù hợp lịch học ở trường" />

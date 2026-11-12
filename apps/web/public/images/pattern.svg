@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+  <g fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="1">
+    <text x="20" y="45" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="700" fill="#2563eb" stroke="none">A</text>
+    <text x="150" y="70" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="700" fill="#2563eb" stroke="none">b</text>
+    <text x="90" y="200" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700" fill="#2563eb" stroke="none">C</text>
+    <path d="M95 30 l8 -8 l22 22 l-8 8z M95 30 l-4 12 l12 -4"/>
+    <path d="M180 140 a14 14 0 1 1 0.1 0"/>
+    <path d="M30 120 q15 -12 30 0 q15 12 30 0"/>
+    <path d="M190 200 l5 10 l11 1 l-8 7 l2 11 l-10 -6 l-10 6 l2 -11 l-8 -7 l11 -1z"/>
+    <path d="M40 180 h30 v22 h-18 l-8 8 v-8 h-4z"/>
+  </g>
+</svg>

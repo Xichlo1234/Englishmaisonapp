@@ -10,8 +10,9 @@ export function ForceChangePasswordPage() {
   if (!user) return <Navigate to="/dang-nhap" replace />;
   if (!user.mustChangePassword) return <Navigate to="/" replace />;
   return (
-    <div className="grid min-h-screen place-items-center bg-muted px-4">
-      <Card className="w-full max-w-sm">
+    <div className="relative grid min-h-screen place-items-center bg-muted px-4">
+      <div aria-hidden className="absolute inset-0 bg-[url(/images/pattern.svg)] bg-[length:240px] opacity-[0.05]" />
+      <Card className="relative w-full max-w-sm shadow-lg">
         <CardHeader>
           <CardTitle>Đổi mật khẩu lần đầu</CardTitle>
           <CardDescription>Xin chào {user.fullName}. Vì lý do bảo mật, vui lòng đặt mật khẩu mới trước khi sử dụng.</CardDescription>

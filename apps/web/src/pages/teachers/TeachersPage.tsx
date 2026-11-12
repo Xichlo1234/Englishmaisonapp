@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
@@ -14,6 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { DateInput } from '@/components/ui/date-input';
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { FormField } from '@/components/common/form-field';
@@ -240,7 +241,11 @@ function TeacherSheet({
             <Input id="t-spec" placeholder="VD: IELTS, Starters–Flyers" {...form.register('specialty')} />
           </FormField>
           <FormField label="Ngày bắt đầu làm việc" htmlFor="t-hired">
-            <Input id="t-hired" type="date" {...form.register('hiredDate')} />
+            <Controller
+              control={form.control}
+              name="hiredDate"
+              render={({ field }) => <DateInput id="t-hired" value={field.value} onChange={field.onChange} onBlur={field.onBlur} />}
+            />
           </FormField>
           {isNew && <p className="text-xs text-muted-foreground">Sau khi lưu, hệ thống tạo tài khoản với mật khẩu tạm (giáo viên phải đổi ở lần đăng nhập đầu).</p>}
           <SheetFooter>

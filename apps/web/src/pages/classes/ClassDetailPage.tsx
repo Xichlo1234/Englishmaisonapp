@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { DateInput, TimeInput } from '@/components/ui/date-input';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -339,7 +340,7 @@ function ScheduleTab({ c }: { c: ClassDetail }) {
           </SheetHeader>
           {error && <Alert variant="destructive">{error}</Alert>}
           <FormField label="Áp dụng từ ngày" htmlFor="sch-from" required>
-            <Input id="sch-from" type="date" min={c.startDate} value={from} onChange={(e) => setFrom(e.target.value)} />
+            <DateInput id="sch-from" min={c.startDate} value={from} onChange={setFrom} />
           </FormField>
           <ScheduleRowsEditor rows={rows} onChange={setRows} mainTeacherId={c.mainTeacherId ?? ''} effectiveFrom={from} effectiveTo={c.endDate} allowMultiple={false} />
           <SheetFooter>
@@ -545,14 +546,14 @@ function MakeupSheet({ c, open, onOpenChange }: { c: ClassDetail; open: boolean;
         </SheetHeader>
         {error && <Alert variant="destructive">{error}</Alert>}
         <FormField label="Ngày" htmlFor="mk-date" required>
-          <Input id="mk-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <DateInput id="mk-date" value={date} onChange={setDate} />
         </FormField>
         <div className="grid grid-cols-2 gap-3">
           <FormField label="Bắt đầu" htmlFor="mk-start" required>
-            <Input id="mk-start" type="time" value={start} onChange={(e) => setStart(e.target.value)} />
+            <TimeInput id="mk-start" value={start} onChange={setStart} />
           </FormField>
           <FormField label="Kết thúc" htmlFor="mk-end" required>
-            <Input id="mk-end" type="time" value={end} onChange={(e) => setEnd(e.target.value)} />
+            <TimeInput id="mk-end" value={end} onChange={setEnd} />
           </FormField>
         </div>
         <FormField label="Giáo viên" htmlFor="mk-teacher" required>

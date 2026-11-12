@@ -6,6 +6,7 @@ import { vnDate, WEEKDAY_LABELS } from '@ecm/shared';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DateInput } from '@/components/ui/date-input';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { FormField } from '@/components/common/form-field';
@@ -73,7 +74,7 @@ export function EnrollToClassSheet({ student, open, onOpenChange }: { student: S
           </div>
         )}
         <FormField label="Ngày vào lớp" htmlFor="en-date" required>
-          <Input id="en-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <DateInput id="en-date" value={date} onChange={setDate} />
         </FormField>
         {capacityHit && user?.role === 'ADMIN' && (
           <FormField label="Lý do vượt sĩ số (chỉ quản trị viên)" htmlFor="en-override">

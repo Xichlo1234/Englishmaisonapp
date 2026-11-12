@@ -45,7 +45,8 @@ export function ErrorBlock({ error, onRetry }: { error: unknown; onRetry?: () =>
 
 export function EmptyBlock({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-2 py-14 text-center">
+    <div className="flex flex-col items-center gap-2 py-12 text-center">
+      <img src="/images/empty-state.svg" alt="" aria-hidden className="mb-2 h-24 w-auto select-none" draggable={false} />
       <p className="font-medium">{title}</p>
       {description && <p className="max-w-sm text-sm text-muted-foreground">{description}</p>}
       {action && <div className="mt-2">{action}</div>}

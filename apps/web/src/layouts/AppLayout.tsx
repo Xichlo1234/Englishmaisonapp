@@ -28,12 +28,14 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
           onClick={onNavigate}
           className={({ isActive }) =>
             cn(
-              'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-white hover:text-foreground',
-              isActive && 'bg-white text-primary shadow-xs ring-1 ring-border',
+              'group flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-white hover:shadow-xs',
+              isActive && cn('shadow-xs ring-1', item.tone.active),
             )
           }
         >
-          <item.icon className="size-4.5" />
+          <span className={cn('grid size-8 shrink-0 place-items-center rounded-lg transition-transform group-hover:scale-105', item.tone.icon)}>
+            <item.icon className="size-4.5" />
+          </span>
           {item.label}
         </NavLink>
       ))}
@@ -64,6 +66,7 @@ export function AppLayout() {
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r bg-sidebar md:flex">
         <Brand />
         <SidebarNav />
+        <img src="/images/sidebar-art.svg" alt="" aria-hidden className="mt-auto w-full select-none" draggable={false} />
       </aside>
 
       <Sheet open={open} onOpenChange={setOpen}>
@@ -107,8 +110,12 @@ export function AppLayout() {
             </DropdownMenuContent>
           </DropdownMenu>
         </header>
-        <main className="flex-1 px-4 py-6 md:px-8">
-          <Outlet />
+        <main className="relative flex-1 px-4 py-6 md:px-8">
+          {/* Họa tiết chữ cái rất mờ — nền vẫn là màu trắng theo thiết kế */}
+          <div aria-hidden className="pointer-events-none absolute inset-0 bg-[url(/images/pattern.svg)] bg-[length:240px] opacity-[0.035]" />
+          <div className="relative">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

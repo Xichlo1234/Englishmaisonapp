@@ -68,7 +68,7 @@ async function step(name, fn) {
       await page.getByRole('link', { name: 'Thêm học sinh' }).first().click();
       await page.waitForURL(/hoc-sinh\/moi/);
       await page.fill('#fullName', 'trần thị bảo ngọc');
-      await page.fill('#dob', '2016-04-12');
+      await page.fill('#dob', '12/04/2016');
       await page.selectOption('#gender', 'FEMALE');
       await page.fill('#school', 'TH Nguyễn Du');
       await page.fill('#grade', '4A');
@@ -87,7 +87,7 @@ async function step(name, fn) {
     await step('Thêm em (dùng lại phụ huynh theo SĐT) + cảnh báo', async () => {
       await page.goto(`${BASE}/hoc-sinh/moi`);
       await page.fill('#fullName', 'Trần Minh Khang');
-      await page.fill('#dob', '2018-09-01');
+      await page.fill('#dob', '01092018'); // gõ liền số → tự chèn dấu /
       await page.fill('[id="guardians.0.phone"]', '0912345678');
       await page.getByRole('button', { name: 'Dùng phụ huynh này' }).click();
       await page.getByText('Trần Văn Hùng – 0912345678').waitFor();
@@ -96,6 +96,17 @@ async function step(name, fn) {
       await page.getByRole('button', { name: 'Lưu học sinh' }).click();
       await page.waitForURL(/hoc-sinh\/\d+$/);
       await page.getByText('HS00002').waitFor();
+    });
+
+    await step('Ô ngày hiển thị dd/mm/yyyy, tự chèn "/" và từ chối ngày không tồn tại', async () => {
+      await page.goto(`${BASE}/hoc-sinh/moi`);
+      await page.fill('#dob', '15032017');
+      if ((await page.inputValue('#dob')) !== '15/03/2017') throw new Error('Không tự định dạng dd/mm/yyyy');
+      await page.fill('#dob', '30/02/2017');
+      await page.locator('#fullName').click();
+      if ((await page.inputValue('#dob')) !== '') throw new Error('Không xóa ngày không tồn tại');
+      const start = await page.inputValue('#start');
+      if (!/^\d{2}\/\d{2}\/\d{4}$/.test(start)) throw new Error('Ngày bắt đầu mặc định không ở dạng dd/mm/yyyy: ' + start);
     });
 
     await step('Tìm kiếm không dấu và theo SĐT phụ huynh', async () => {
