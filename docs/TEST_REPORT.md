@@ -72,3 +72,34 @@ Chưa đăng nhập → chuyển trang đăng nhập · sai mật khẩu báo l�
 ### Ghi chú
 - Thư viện shadcn/ui: registry `ui.shadcn.com` bị chặn trong môi trường build, các component được viết theo đúng cấu trúc shadcn (Radix UI + Tailwind + `cva`) trong `apps/web/src/components/ui`, có `components.json` để dùng CLI sau này.
 - Menu chỉ hiển thị module đã hoàn thành (hiện tại: Học sinh). Các mục khác được bật khi module tương ứng qua kiểm thử.
+
+## Giai đoạn 3.3 — Ca học & 3.4 — Lớp học (+ quản lý giáo viên cơ bản) (12/11/2026)
+
+> Quản lý giáo viên (thêm, sửa, ngừng làm việc, cấp lại mật khẩu) được làm sớm hơn kế hoạch (vốn ở 3.8) vì là điều kiện để tạo lớp và lịch dạy.
+
+| Hạng mục | Kết quả | Ghi chú |
+|---|---|---|
+| TypeScript (shared, workers, web) | ✅ 0 lỗi | |
+| Unit test shared | ✅ 36/36 | |
+| Integration test workers | ✅ 57/57 | +16 test lớp học/ca/giáo viên |
+| E2E trình duyệt | ✅ 26/26 bước | 2 kịch bản, mỗi kịch bản chạy trên D1 local sạch |
+
+### Integration test
+- **Giáo viên:** tạo kèm tài khoản, mật khẩu tạm đăng nhập được và bắt buộc đổi; trùng email → 409; thiếu cả email và SĐT → 422; không cho ngừng làm việc khi còn lịch dạy; ngừng làm việc → không đăng nhập được.
+- **Ca học:** giờ kết thúc phải sau giờ bắt đầu; tên không trùng; 3 ca mẫu (14:00–15:30, 16:00–17:30, 18:00–20:00) có sẵn.
+- **Trùng lịch:** chặn trùng giáo viên (cùng thứ, giờ giao nhau); khác thứ được; lớp cũ kết thúc trước ngày lớp mới bắt đầu thì không tính trùng; chặn trùng phòng; API kiểm tra trước khi lưu.
+- **Mở lớp:** không mở được lớp chưa có lịch; sinh **đúng số buổi** theo thứ trong tuần từ ngày bắt đầu đến 8 tuần tới; cron sinh lại **không tạo trùng**.
+- **Đổi giờ ca:** chỉ áp dụng buổi chưa diễn ra; buổi đã qua giữ giờ cũ. **Kết thúc lịch:** xóa buổi tương lai chưa điểm danh.
+- **Sĩ số:** chặn vượt sĩ số; quản trị viên vượt được khi nhập lý do (ghi vào ghi danh + nhật ký).
+- **Xếp lớp:** chặn học sinh trùng giờ giữa hai lớp; học sinh tạm nghỉ không xếp được.
+- **Chuyển ca:** chặn ngày chuyển trước buổi đã điểm danh; ghi danh cũ kết thúc (hiệu lực − 1, `TRANSFER`), ghi danh mới liên kết `transferred_from_id`; **điểm danh cũ giữ nguyên**; danh sách theo ngày trả đúng lớp trước/sau ngày chuyển; xuất hiện trong nhật ký học sinh và lịch sử sĩ số.
+- **Đóng lớp:** chặn khi còn buổi đã qua chưa điểm danh; hủy các buổi đó thì đóng được; ghi danh kết thúc `CLASS_CLOSED`; buổi tương lai bị xóa.
+- **Buổi bù / dạy thay:** kiểm tra trùng giáo viên ở cấp buổi học.
+- **Phân quyền:** giáo viên chỉ thấy lớp và lịch của mình (lớp khác → 404), không tạo lớp/xếp lớp được; danh sách giáo viên trả cho giáo viên không có email/SĐT.
+
+### E2E lớp học (trình duyệt thật)
+Thêm giáo viên (hiện mật khẩu tạm một lần) · thêm phòng · tạo lớp A + kiểm tra không trùng lịch ngay trên form · mở lớp · tạo lớp B trùng giờ giáo viên → form báo trùng, đổi ca → tạo được · xếp 2 học sinh (đủ sĩ số 2/2) · chuyển ca từ trang học sinh · lịch tuần/tháng hiển thị cả hai lớp · hủy buổi có lý do · lịch sử sĩ số ghi nhận chuyển lớp · đóng lớp rút học sinh.
+
+### Lỗi phát hiện và đã sửa
+1. Ca mới tạo có thứ tự 0 nên chen lên trước Ca 1/2/3 → ca mới mặc định xếp cuối.
+2. Script E2E: tiến trình `workerd` cũ còn giữ cổng sau khi xóa D1 local → script dừng hẳn tiến trình và dùng DB sạch cho từng kịch bản.

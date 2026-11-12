@@ -27,12 +27,12 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { to: '/tong-quan', label: 'Tổng quan', icon: LayoutDashboard, permission: 'dashboard.read', ready: false },
   { to: '/hoc-sinh', label: 'Học sinh', icon: Users, permission: 'students.read', ready: true },
-  { to: '/lop-hoc', label: 'Lớp học', icon: BookOpen, permission: 'classes.read', ready: false },
-  { to: '/ca-hoc', label: 'Ca học', icon: CalendarClock, permission: 'classes.read', ready: false },
+  { to: '/lop-hoc', label: 'Lớp học', icon: BookOpen, permission: 'classes.read', ready: true },
+  { to: '/ca-hoc', label: 'Ca học', icon: CalendarClock, permission: 'classes.read', ready: true },
   { to: '/diem-danh', label: 'Điểm danh', icon: ClipboardCheck, permission: 'attendance.read', ready: false },
   { to: '/diem-so', label: 'Điểm số', icon: Star, permission: 'grades.read', ready: false },
   { to: '/hoc-phi', label: 'Học phí', icon: Wallet, permission: 'fees.read', ready: false },
-  { to: '/giao-vien', label: 'Giáo viên', icon: UserSquare2, permission: 'teachers.write', ready: false },
+  { to: '/giao-vien', label: 'Giáo viên', icon: UserSquare2, permission: 'teachers.write', ready: true },
   { to: '/bao-cao', label: 'Báo cáo', icon: BarChart3, permission: 'reports.read', ready: false },
   { to: '/cai-dat', label: 'Cài đặt', icon: Settings, permission: 'settings.manage', ready: false },
 ];

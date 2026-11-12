@@ -22,6 +22,8 @@ import { fileUrl } from '@/lib/api';
 import { ageFrom, formatDateTimeVN, formatDateVN, GENDER_LABELS, STUDENT_STATUS_VARIANT } from '@/lib/format';
 import { studentKeys, studentsApi, type StudentDetail, type TimelineEntry } from '@/services/students';
 import { GuardiansPanel } from './GuardiansPanel';
+import { EnrollToClassSheet } from './EnrollToClassSheet';
+import { TransferSheet } from '@/pages/classes/dialogs';
 import { StatusActionDialog, type StatusAction } from './StatusActionDialog';
 
 const ACTION_LABELS: Record<StatusAction, string> = {
@@ -54,6 +56,8 @@ function StudentDetailView({ s }: { s: StudentDetail }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [action, setAction] = useState<StatusAction | null>(null);
+  const [enrolling, setEnrolling] = useState(false);
+  const [transfer, setTransfer] = useState<{ id: number; studentName: string; classId: number; classCode: string; startDate: string } | null>(null);
   const isFullScope = user?.role === 'ADMIN' || user?.role === 'OWNER';
   const available = (Object.keys(STUDENT_TRANSITIONS) as StatusAction[]).filter((a) =>
     (STUDENT_TRANSITIONS[a] as readonly string[]).includes(s.status),
@@ -174,6 +178,13 @@ function StudentDetailView({ s }: { s: StudentDetail }) {
         <TabsContent value="classes">
           <Card>
             <CardContent>
+              {can('enrollments.write') && s.status === 'ACTIVE' && (
+                <div className="mb-4 flex justify-end">
+                  <Button size="sm" onClick={() => setEnrolling(true)}>
+                    Xếp lớp
+                  </Button>
+                </div>
+              )}
               {s.enrollments.length === 0 ? (
                 <EmptyBlock title="Chưa xếp lớp" description="Học sinh chưa được xếp vào lớp nào." />
               ) : (
@@ -183,12 +194,19 @@ function StudentDetailView({ s }: { s: StudentDetail }) {
                       <span
                         className={`absolute -left-[5px] mt-1.5 size-2.5 rounded-full ${e.status === 'ACTIVE' ? 'bg-success' : 'bg-slate-300'}`}
                       />
-                      <div className="font-medium">
-                        {e.classCode} – {e.className}
-                        {e.status === 'ACTIVE' && (
-                          <Badge variant="success" className="ml-2">
-                            Đang học
-                          </Badge>
+                      <div className="flex flex-wrap items-center gap-2 font-medium">
+                        <Link to={`/lop-hoc/${e.classId}`} className="hover:text-primary">
+                          {e.classCode} – {e.className}
+                        </Link>
+                        {e.status === 'ACTIVE' && <Badge variant="success">Đang học</Badge>}
+                        {e.status === 'ACTIVE' && can('enrollments.write') && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setTransfer({ id: e.id, studentName: s.fullName, classId: e.classId, classCode: e.classCode, startDate: e.startDate })}
+                          >
+                            Chuyển lớp/ca
+                          </Button>
                         )}
                       </div>
                       <div className="text-sm text-muted-foreground">
@@ -212,6 +230,8 @@ function StudentDetailView({ s }: { s: StudentDetail }) {
       </Tabs>
 
       <StatusActionDialog student={s} action={action} onClose={() => setAction(null)} />
+      <EnrollToClassSheet student={s} open={enrolling} onOpenChange={setEnrolling} />
+      <TransferSheet enrollment={transfer} onOpenChange={(o) => !o && setTransfer(null)} />
     </div>
   );
 }

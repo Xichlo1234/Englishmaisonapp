@@ -11,6 +11,11 @@ import { LoginPage } from '@/pages/auth/LoginPage';
 import { StudentDetailPage } from '@/pages/students/StudentDetailPage';
 import { StudentFormPage } from '@/pages/students/StudentFormPage';
 import { StudentsListPage } from '@/pages/students/StudentsListPage';
+import { ClassDetailPage } from '@/pages/classes/ClassDetailPage';
+import { ClassFormPage } from '@/pages/classes/ClassFormPage';
+import { ClassesListPage } from '@/pages/classes/ClassesListPage';
+import { ShiftsPage } from '@/pages/shifts/ShiftsPage';
+import { TeachersPage } from '@/pages/teachers/TeachersPage';
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -66,6 +71,17 @@ export const router = createBrowserRouter([
           { path: ':id/sua', element: <RequirePermission perm="students.write"><StudentFormPage /></RequirePermission> },
         ],
       },
+      {
+        path: 'lop-hoc',
+        children: [
+          { index: true, element: <RequirePermission perm="classes.read"><ClassesListPage /></RequirePermission> },
+          { path: 'moi', element: <RequirePermission perm="classes.write"><ClassFormPage /></RequirePermission> },
+          { path: ':id', element: <RequirePermission perm="classes.read"><ClassDetailPage /></RequirePermission> },
+          { path: ':id/sua', element: <RequirePermission perm="classes.write"><ClassFormPage /></RequirePermission> },
+        ],
+      },
+      { path: 'ca-hoc', element: <RequirePermission perm="classes.read"><ShiftsPage /></RequirePermission> },
+      { path: 'giao-vien', element: <RequirePermission perm="teachers.write"><TeachersPage /></RequirePermission> },
       { path: '*', element: <NotFound /> },
     ],
   },
