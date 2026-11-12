@@ -20,7 +20,7 @@
   {
     "binding": "DB",
     "database_name": "ecm-db-staging",
-    "database_id": "DÁN-DATABASE-ID-THẬT-VÀO-ĐÂY",
+    "database_id": "b1525a2e-4b87-451d-92a7-ecbd868a01d1",
     "migrations_dir": "migrations"
   }
 ],
@@ -56,7 +56,7 @@
     "staging": {
       "name": "ecm-api-staging",
       "d1_databases": [
-        { "binding": "DB", "database_name": "ecm-db-staging", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "migrations" }
+        { "binding": "DB", "database_name": "ecm-db-staging", "database_id": "b1525a2e-4b87-451d-92a7-ecbd868a01d1", "migrations_dir": "migrations" }
       ],
       "r2_buckets": [{ "binding": "FILES", "bucket_name": "ecm-files-staging" }],
       "ratelimits": [
@@ -76,7 +76,7 @@
     "production": {
       "name": "ecm-api",
       "d1_databases": [
-        { "binding": "DB", "database_name": "ecm-db", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "migrations" }
+        { "binding": "DB", "database_name": "ecm-db", "database_id": "b1525a2e-4b87-451d-92a7-ecbd868a01d1", "migrations_dir": "migrations" }
       ],
       "r2_buckets": [{ "binding": "FILES", "bucket_name": "ecm-files" }],
       "ratelimits": [
