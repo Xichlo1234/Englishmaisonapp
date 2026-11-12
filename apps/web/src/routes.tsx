@@ -18,6 +18,8 @@ import { ShiftsPage } from '@/pages/shifts/ShiftsPage';
 import { TeachersPage } from '@/pages/teachers/TeachersPage';
 import { AttendancePage } from '@/pages/attendance/AttendancePage';
 import { AttendanceSheetPage } from '@/pages/attendance/AttendanceSheetPage';
+import { GradesPage } from '@/pages/grades/GradesPage';
+import { AssessmentSheetPage } from '@/pages/grades/AssessmentSheetPage';
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -84,6 +86,8 @@ export const router = createBrowserRouter([
       },
       { path: 'diem-danh', element: <RequirePermission perm="attendance.read"><AttendancePage /></RequirePermission> },
       { path: 'diem-danh/:lessonId', element: <RequirePermission perm="attendance.read"><AttendanceSheetPage /></RequirePermission> },
+      { path: 'diem-so', element: <RequirePermission perm="grades.read"><GradesPage /></RequirePermission> },
+      { path: 'diem-so/:id', element: <RequirePermission perm="grades.read"><AssessmentSheetPage /></RequirePermission> },
       { path: 'ca-hoc', element: <RequirePermission perm="classes.read"><ShiftsPage /></RequirePermission> },
       { path: 'giao-vien', element: <RequirePermission perm="teachers.write"><TeachersPage /></RequirePermission> },
       { path: '*', element: <NotFound /> },

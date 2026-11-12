@@ -143,3 +143,30 @@ Giáo viên đăng nhập lần đầu → trang Điểm danh hôm nay · chọn
 ### Lỗi phát hiện và đã sửa
 1. Nút trạng thái trên điện thoại ~40px, nhãn dài làm vỡ hàng → lưới 4 cột, cao 48px, nhãn ngắn trên điện thoại (Có mặt / Muộn / Vắng P / Vắng KP).
 2. Cột "Có mặt" ở ma trận tháng cộng cả đi muộn → chỉ đếm có mặt (đi muộn có cột riêng).
+
+## Giai đoạn 3.6 — Chấm điểm & đánh giá (12/11/2026)
+
+| Hạng mục | Kết quả | Ghi chú |
+|---|---|---|
+| TypeScript (shared, workers, web) | ✅ 0 lỗi | |
+| Unit test shared | ✅ 36/36 | gồm các mức biên xếp loại 9 / 8 / 6,5 / 5 |
+| Integration test workers | ✅ 71/71 | +7 test chấm điểm |
+| E2E trình duyệt | ✅ 43/43 bước | 4 kịch bản; kịch bản chấm điểm chạy dưới vai trò **giáo viên** |
+
+### Quy tắc nghiệp vụ đã kiểm thử
+- Cấu hình mặc định: 6 tiêu chí (Listening, Speaking, Reading, Writing, Homework, Attitude), 4 loại đánh giá (theo buổi, định kỳ, kiểm tra tháng, cuối khóa), 5 mức xếp loại.
+- Điểm TB theo trọng số, quy về thang 10: ví dụ trong tài liệu thiết kế 8,7,9,6,10,9 → **8,17 – Giỏi**; thiếu tiêu chí chỉ tính tiêu chí có điểm (Q8); xóa một điểm → tính lại.
+- **Không tự ý thay đổi điểm cũ:** mỗi đợt chụp lại cấu hình (tiêu chí, trọng số, thang điểm, thang xếp loại). Test đổi trọng số Listening = 3 và thang xếp loại mới → đợt cũ vẫn 7,5 – Khá; đợt mới tính 8,25 – Đạt theo cấu hình mới.
+- Từ chối: điểm vượt thang, học sinh ngoài lớp, ngày đánh giá trong tương lai, thang xếp loại thiếu mức 0; giáo viên không sửa được cấu hình.
+- Lịch sử sửa điểm ghi cũ → mới; sau công bố giáo viên không sửa được, quản trị viên sửa được (ghi nhận "Sửa điểm sau khi công bố").
+- Công bố: phụ huynh (có tài khoản) xem được kết quả và nhận thông báo (không trùng); đợt nháp ẩn với phụ huynh.
+- Giáo viên lớp khác không xem/tạo được đợt đánh giá của lớp; không xóa được đợt đã có điểm.
+
+### E2E chấm điểm (vai trò giáo viên)
+Quản trị viên xem trang Cấu hình · giáo viên tạo đợt "Kiểm tra tháng" · nhập điểm dạng lưới, TB **8,17** và **Giỏi** hiện ngay khi gõ, Enter chuyển xuống ô dưới như bảng tính, nhận xét · điểm 11 bị tô đỏ và khóa nút Lưu · lưu, tải lại vẫn còn · công bố → ô nhập bị khóa với giáo viên, lịch sử ghi nhận · trang học sinh: biểu đồ tiến bộ 6,5 → 8,17 kèm bảng kết quả.
+
+### Biểu đồ tiến bộ
+Một chuỗi (điểm TB) nên không cần chú giải; một trục 0–10; đường 2px, điểm có viền nền; lưới mờ; nhãn trực tiếp cho điểm cuối; chú thích khi rê/chạm với vùng bắt rộng hơn điểm; bảng số liệu đầy đủ ngay bên dưới.
+
+### Lỗi phát hiện và đã sửa
+1. **Thông báo nổi (toast) che nút "Lưu điểm"/"Xác nhận điểm danh"** ở thanh cố định cuối màn hình → chuyển thông báo lên góc trên phải, dưới thanh tiêu đề.
