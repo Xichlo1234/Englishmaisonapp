@@ -1,0 +1,54 @@
+{
+  "colors": {
+    "canvas": "#F7F5EF",
+    "paper": "#FFFEFA",
+    "ink": "#183D46",
+    "muted": "#647976",
+    "primary": "#167C75",
+    "primaryBase": "#0F514D",
+    "sage": "#DCE7D3",
+    "accent": "#EDB774",
+    "danger": "#B95145",
+    "border": "#E4E8DE"
+  },
+  "typography": {
+    "body": "Noto Sans",
+    "display": "Noto Serif",
+    "bodySizes": [
+      12,
+      13,
+      14,
+      16
+    ],
+    "headingSizes": [
+      24,
+      32,
+      44
+    ]
+  },
+  "radius": {
+    "button": 14,
+    "card": 22,
+    "panel": 28
+  },
+  "spacing": [
+    4,
+    8,
+    12,
+    16,
+    24,
+    32,
+    48
+  ],
+  "button": {
+    "height": 46,
+    "raisedDepth": 5,
+    "pressedTranslateY": 4,
+    "focusRing": "0 0 0 4px #167c7530",
+    "transitionMs": 160,
+    "minimumTouchTarget": 44
+  },
+  "motion": {
+    "reducedMotion": "disable hover translation and transitions"
+  }
+}

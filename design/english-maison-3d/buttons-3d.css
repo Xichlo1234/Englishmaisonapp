@@ -1,0 +1,42 @@
+/* English Maison — standalone 3D buttons. Opt-in em-btn classes only. */
+.em-btn {
+  --em-face: #167c75;
+  --em-top: #238980;
+  --em-edge: #0f514d;
+  --em-text: #fffaf1;
+  box-sizing: border-box;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 10px 18px;
+  border: 1px solid color-mix(in srgb, var(--em-face), white 12%);
+  border-radius: 14px;
+  background: linear-gradient(var(--em-top), var(--em-face));
+  color: var(--em-text);
+  box-shadow: inset 0 1px #ffffff38, 0 5px 0 var(--em-edge), 0 8px 12px #265f5018;
+  font: 700 13px/1.5 'Noto Sans', system-ui, sans-serif;
+  text-decoration: none;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 160ms, box-shadow 160ms, filter 160ms;
+}
+.em-btn > img, .em-btn > svg { width: 18px; height: 18px; flex-shrink: 0; }
+.em-btn > img { filter: brightness(0) invert(1); }
+.em-btn--secondary { --em-top: #fffefa; --em-face: #f3f3e9; --em-edge: #d2dac9; --em-text: #49645c; border-color: #dfe5d7; }
+.em-btn--secondary > img { filter: none; }
+.em-btn--danger { --em-top: #ca6b5d; --em-face: #b95145; --em-edge: #853b34; }
+.em-btn--warm { --em-top: #d39b5e; --em-face: #b47b3e; --em-edge: #825930; }
+.em-btn--success { --em-top: #43825b; --em-face: #386d4b; --em-edge: #254d34; }
+.em-btn:not(:disabled):not([aria-disabled='true']):hover,
+.em-btn[data-preview-state='hover'] { transform: translateY(-2px); filter: brightness(1.06); box-shadow: inset 0 1px #ffffff38, 0 7px 0 var(--em-edge), 0 11px 15px #265f5020; }
+.em-btn:not(:disabled):not([aria-disabled='true']):active,
+.em-btn[data-preview-state='pressed'] { transform: translateY(4px); filter: none; box-shadow: inset 0 1px #ffffff22, 0 1px 0 var(--em-edge); }
+.em-btn:focus-visible { outline: 3px solid #167c75; outline-offset: 6px; }
+.em-btn:disabled, .em-btn[aria-disabled='true'] { --em-top: #b4c0b8; --em-face: #b4c0b8; --em-edge: #96a79c; --em-text: #fffefa; cursor: not-allowed; filter: none; }
+.em-btn[aria-busy='true'] { cursor: progress; }
+@media (prefers-reduced-motion: reduce) {
+  .em-btn { transition: none; }
+  .em-btn:not(:disabled):not([aria-disabled='true']):hover { transform: none; }
+}
