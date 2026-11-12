@@ -1,13 +1,52 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Check, Loader2, Pencil, X } from 'lucide-react';
+import { Camera, Check, Loader2, Pencil, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { errorMessage, PageHeader } from '@/components/common/page';
+import { UserAvatar } from '@/components/common/user-avatar';
+import { compressImage } from '@/lib/image';
 import { ME_KEY, useAuth } from '@/hooks/use-auth';
 import { api } from '@/lib/api';
+
+function AvatarEditor({ name, fileId }: { name: string; fileId: number | null }) {
+  const input = useRef<HTMLInputElement>(null);
+  const qc = useQueryClient();
+  const upload = useMutation({
+    mutationFn: async (file: File) => {
+      const form = new FormData();
+      form.append('files', await compressImage(file, 800), 'avatar.jpg');
+      return api<{ fileId: number }>('/me/avatar', { form });
+    },
+    onSuccess: () => (qc.invalidateQueries({ queryKey: ME_KEY }), toast.success('Đã cập nhật ảnh đại diện')),
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+  return (
+    <div className="flex flex-col items-center gap-3 sm:flex-row sm:gap-5">
+      <UserAvatar name={name} fileId={fileId} className="size-32 text-4xl shadow-md" />
+      <div className="flex flex-col items-center gap-1.5 sm:items-start">
+        <input
+          ref={input}
+          type="file"
+          accept="image/*"
+          hidden
+          aria-label="Chọn ảnh đại diện"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) upload.mutate(f);
+            e.target.value = '';
+          }}
+        />
+        <Button variant="outline" disabled={upload.isPending} onClick={() => input.current?.click()}>
+          {upload.isPending ? <Loader2 className="animate-spin" /> : <Camera />} {fileId ? 'Đổi ảnh đại diện' : 'Tải ảnh đại diện'}
+        </Button>
+        <p className="text-xs text-muted-foreground">Ảnh JPG/PNG, tự thu nhỏ trước khi tải lên.</p>
+      </div>
+    </div>
+  );
+}
 
 function NameEditor({ name }: { name: string }) {
   const [editing, setEditing] = useState(false);
@@ -52,7 +91,8 @@ export function AccountPage() {
           <CardHeader>
             <CardTitle>Thông tin</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-col gap-5">
+            {user && <AvatarEditor name={user.fullName} fileId={user.avatarFileId} />}
             <dl className="grid grid-cols-[110px_1fr] gap-y-2 text-sm">
               <dt className="text-muted-foreground">Họ tên</dt>
               <dd>{user && <NameEditor name={user.fullName} />}</dd>

@@ -139,14 +139,16 @@
 
 /* Backgrounds from design/english-maison-3d/backgrounds (WebP; smaller file on phones). */
 .app-canvas {
-  background: #f7f1e6 url(/images/bg/app-canvas-sm.webp) right bottom / cover no-repeat;
+  /* Phones: anchor the artwork bottom-right at a fixed width so the corner shapes stay small and sharp
+     (portrait "cover" would blow them up ~3x); the fill colour matches the image edge. */
+  background: #f5eee4 url(/images/bg/app-canvas-sm.webp) right bottom / max(260vw, 100%) auto no-repeat;
 }
 .login-hero {
   /* Phones/tablets: a band showing the academy building (right part of the artwork). */
   background: #f6eee2 url(/images/bg/academy-hero-sm.webp) 82% 45% / cover no-repeat;
 }
 @media (min-width: 1024px) {
-  .app-canvas { background-image: url(/images/bg/app-canvas.webp); }
+  .app-canvas { background-image: url(/images/bg/app-canvas.webp); background-size: cover; }
   /* Desktop: full-bleed; the left third is empty in the artwork and holds the form. */
   .login-hero { background-image: url(/images/bg/academy-hero.webp); background-position: right center; }
 }

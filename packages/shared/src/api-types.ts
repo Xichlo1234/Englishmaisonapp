@@ -28,6 +28,7 @@ export interface MeResponse {
   teacherId: number | null;
   guardianId: number | null;
   studentId: number | null;
+  avatarFileId: number | null;
 }
 
 export interface LoginResponse {

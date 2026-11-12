@@ -303,7 +303,8 @@ export async function loadSessionUser(d1: D1Database, userId: number, sessionId:
                 r.code AS role, s.revoked_at, s.expires_at,
                 (SELECT t.id FROM teachers t WHERE t.user_id = u.id AND t.deleted_at IS NULL) AS teacher_id,
                 (SELECT g.id FROM guardians g WHERE g.user_id = u.id AND g.deleted_at IS NULL) AS guardian_id,
-                (SELECT st.id FROM students st WHERE st.user_id = u.id AND st.deleted_at IS NULL) AS student_id
+                (SELECT st.id FROM students st WHERE st.user_id = u.id AND st.deleted_at IS NULL) AS student_id,
+                (SELECT f.id FROM files f WHERE f.id = u.avatar_file_id AND f.deleted_at IS NULL) AS avatar_file_id
            FROM sessions s
            JOIN users u ON u.id = s.user_id
            JOIN roles r ON r.id = u.role_id
@@ -334,6 +335,7 @@ export async function loadSessionUser(d1: D1Database, userId: number, sessionId:
         teacher_id: number | null;
         guardian_id: number | null;
         student_id: number | null;
+        avatar_file_id: number | null;
       }
     | undefined;
   if (!row || row.revoked_at || row.expires_at <= nowIso() || row.deleted_at || row.status !== 'ACTIVE') return null;
@@ -357,5 +359,6 @@ export function toMeResponse(
     teacherId: row.teacher_id,
     guardianId: row.guardian_id,
     studentId: row.student_id,
+    avatarFileId: row.avatar_file_id,
   };
 }

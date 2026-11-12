@@ -61,7 +61,7 @@ pnpm db:migrate:local # Áp dụng migrations local
 - [x] Hóa đơn chi tiết `/hoc-phi/hoa-don/:id/chi-tiet`: tải ảnh PNG (html-to-image, tên file không dấu), in, gửi phụ huynh (tạo notification FEE_DUE, phụ huynh xem qua API `/invoices/:id/statement` — app mobile hiển thị sau).
 - [x] Cài đặt `/cai-dat` (ADMIN): tên/địa chỉ/SĐT trung tâm (`PATCH /settings/center`). Người dùng tự đổi họ tên ở `/tai-khoan` (đồng bộ sang hồ sơ giáo viên/phụ huynh).
 - [x] Nhật ký lớp & bài tập (tab trong trang lớp; classroom.service.ts): giáo viên của lớp/quản lý đăng ảnh buổi học (ảnh nén 1600px JPEG ở trình duyệt), giao bài kèm ảnh/PDF; phụ huynh nộp ảnh bài làm (API, màn hình ở app mobile), giáo viên chấm Đã làm/Chưa làm + nhận xét. Quyền xem: `classContentVisibleSql` — gia đình chỉ thấy nội dung đăng trong thời gian con học lớp đó. Cờ `students.photo_consent` (Không đăng ảnh) cảnh báo khi đăng. Thông báo loại SYSTEM, `data.kind` = CLASS_POST | HOMEWORK | HOMEWORK_REVIEW.
-- [x] Ảnh đại diện phụ huynh: tự tải qua `POST /me/avatar` (app mobile); hiện cỡ lớn ở tab Phụ huynh của hồ sơ học sinh; giáo viên của con xem được.
+- [x] Ảnh đại diện: mọi tài khoản tự tải qua `POST /me/avatar` (web: trang `/tai-khoan`, ảnh nén 800px; phụ huynh: app mobile); `/me` trả `avatarFileId`; `<UserAvatar>` (components/common/user-avatar.tsx) ở thanh trên cùng. Ảnh phụ huynh hiện cỡ lớn ở tab Phụ huynh của hồ sơ học sinh; giáo viên của con xem được.
 - [x] Quản lý tài khoản (`/quan-ly-tai-khoan`): tạo ADMIN/OWNER, khóa/mở, mở khóa đăng nhập, đổi vai trò, đăng xuất mọi thiết bị, cấp mật khẩu tạm; cấp tài khoản phụ huynh (đăng nhập bằng SĐT) ở trang học sinh
 - [x] CI/CD: push main → test → deploy staging tự động
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router';
-import { KeyRound, LogOut, Menu, UserCircle2 } from 'lucide-react';
+import { KeyRound, LogOut, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { usePublicSettings } from '@/hooks/use-settings';
 import { cn } from '@/lib/utils';
 import { APP_ICON, NAV_ITEMS } from './nav';
+import { UserAvatar } from '@/components/common/user-avatar';
 
 function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const { can } = useAuth();
@@ -60,7 +61,7 @@ export function AppLayout() {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-[#f7f1e6]">
+    <div className="flex min-h-screen bg-[#f5eee4]">
       <div aria-hidden data-print-hide className="app-canvas pointer-events-none fixed inset-0" />
       <aside data-print-hide className="sticky top-0 z-10 hidden h-screen w-60 shrink-0 flex-col border-r bg-sidebar md:flex">
         <Brand />
@@ -85,7 +86,7 @@ export function AppLayout() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="gap-2">
-                <UserCircle2 className="size-5 text-muted-foreground" />
+                {user && <UserAvatar name={user.fullName} fileId={user.avatarFileId} className="size-8 text-xs" />}
                 <span className="max-w-40 truncate">{user?.fullName}</span>
               </Button>
             </DropdownMenuTrigger>

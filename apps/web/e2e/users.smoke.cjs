@@ -174,6 +174,24 @@ async function readCredential(page) {
       await page.locator('header').getByText('Nguyễn Văn Quản Trị').waitFor();
     });
 
+    await step('Trang Tài khoản: tải ảnh đại diện → hiện ảnh lớn và ảnh nhỏ trên thanh trên cùng', async () => {
+      const art = await (await browser.newContext({ viewport: { width: 600, height: 600 } })).newPage();
+      await art.setContent('<body style="margin:0;background:linear-gradient(135deg,#fde68a,#167c75)"></body>');
+      const file = path.join(SHOTS, '_avatar.png');
+      await art.screenshot({ path: file });
+      await art.context().close();
+      await page.getByLabel('Chọn ảnh đại diện').setInputFiles(file);
+      await page.getByText('Đã cập nhật ảnh đại diện').waitFor();
+      fs.rmSync(file, { force: true });
+      const big = page.locator('main').getByRole('img', { name: /Ảnh đại diện/ });
+      await big.waitFor();
+      await big.evaluate((i) => i.decode());
+      const box = await big.boundingBox();
+      if (box.width < 120) throw new Error(`Ảnh đại diện nhỏ (${box.width}px)`);
+      await page.locator('header').getByRole('img', { name: /Ảnh đại diện/ }).waitFor();
+      await page.getByRole('button', { name: 'Đổi ảnh đại diện' }).waitFor();
+    });
+
     await step('Giao diện điện thoại (390px) không tràn ngang', async () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await page.goto(`${BASE}/quan-ly-tai-khoan`);
@@ -181,6 +199,12 @@ async function readCredential(page) {
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       await shot(page, 'u02-users-mobile');
       if (overflow > 1) throw new Error(`Tràn ngang ${overflow}px`);
+      await page.goto(`${BASE}/tai-khoan`);
+      await page.locator('main').getByRole('img', { name: /Ảnh đại diện/ }).waitFor();
+      await page.waitForTimeout(500);
+      await page.screenshot({ path: path.join(SHOTS, 'u05-account-mobile.png') });
+      const ov2 = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      if (ov2 > 1) throw new Error(`Trang tài khoản tràn ngang ${ov2}px`);
     });
   } finally {
     for (const r of results) console.log(r.join(' '));

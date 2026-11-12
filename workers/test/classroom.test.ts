@@ -161,6 +161,7 @@ describe('Ảnh đại diện phụ huynh', () => {
     const r = await send('/me/avatar', form({}, [jpg()]), a.token);
     expect(r.status).toBe(201);
     const fileId = ((await r.json()) as { fileId: number }).fileId;
+    expect((await get<{ avatarFileId: number | null }>('/me', a.token)).avatarFileId).toBe(fileId);
     const detail = await get<{ guardians: { id: number; avatarFileId: number | null }[] }>(`/students/${a.sid}`);
     expect(detail.guardians[0]!.avatarFileId).toBe(fileId);
     expect(await status(`/files/${fileId}/content`, teacher.token)).toBe(200);
