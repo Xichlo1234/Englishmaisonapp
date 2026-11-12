@@ -64,7 +64,7 @@
       ],
       "vars": {
         "APP_ENV": "staging",
-        "APP_ORIGIN": "https://ecm-api-staging.englishmaison.workers.dev",
+        "APP_ORIGIN": "https://ecm-api-staging.khovattu.workers.dev",
         "ACCESS_TOKEN_TTL_SECONDS": "900",
         "REFRESH_TTL_WEB_DAYS": "7",
         "REFRESH_TTL_MOBILE_DAYS": "30",

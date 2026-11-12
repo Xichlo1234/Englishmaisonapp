@@ -21,11 +21,11 @@ apps/mobile/        — Flutter scaffold (chưa có màn hình, chỉ placeholde
 
 ## Quy ước code
 - Ngôn ngữ UI: tiếng Việt. Code/comments: tiếng Anh.
-- Ngày hiển thị: dd/mm/yyyy (dùng `formatDateVN` từ shared).
-- Tiền VNĐ: `formatVND`, `vndInWords` từ shared/money.
+- Ngày hiển thị: dd/mm/yyyy (`formatDateVN` trong shared/datetime, `formatDateTimeVN` trong apps/web/src/lib/format.ts).
+- Tiền VNĐ: `formatVnd`, `computeDiscount`, `deriveInvoiceStatus` trong shared/money.
 - Auth: PBKDF2 30000 iterations, JWT 15m access + rotating refresh. Web: HttpOnly cookies + CSRF. Mobile: Bearer token.
-- D1 batch: dùng `runBatch()` helper (workers/src/lib/run-batch.ts) vì Drizzle batch chỉ hỗ trợ prepared, không raw SQL.
-- API response: `{ data }` hoặc `{ error, code }`.
+- D1 batch: dùng `runBatch()` / `rowsOf()` trong workers/src/lib/batch.ts (giao dịch nguyên tử, hỗ trợ raw SQL).
+- API response: `{ data }`; lỗi `{ error: { code, message, details } }` (ném `Errors.*` từ workers/src/lib/errors.ts).
 - Cron: "0 17 * * *" (00:00 VN), "0 1 * * *" (08:00 VN).
 
 ## Scripts
@@ -39,14 +39,14 @@ pnpm db:migrate:local # Áp dụng migrations local
 
 ## CI/CD (GitHub Actions)
 - `ci.yml`: push/PR → typecheck + test + build web
-- `deploy.yml`: push main → deploy staging. Tag v* → deploy production.
+- `deploy.yml`: push main → typecheck + test + build → migrations → deploy staging. Production chưa bật (chung database_id với staging).
 - `setup-d1.yml`: chạy thủ công để tạo bảng + tài khoản admin.
-- Secrets cần: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`.
+- Secrets cần: `CLOUDFLARE_API_TOKEN` (D1 Edit + Workers Scripts Edit + Workers R2 Storage Edit), `CLOUDFLARE_ACCOUNT_ID`.
 
 ## Staging
 - Worker URL: `ecm-api-staging.khovattu.workers.dev`
 - D1 database: `ecm-db-staging` (id: b1525a2e-4b87-451d-92a7-ecbd868a01d1)
-- Tài khoản admin: admin@gmail.com (đã tạo qua setup-d1 workflow)
+- Tài khoản admin đầu tiên tạo qua workflow setup-d1
 
 ## Trạng thái tiến độ
 
@@ -54,7 +54,7 @@ pnpm db:migrate:local # Áp dụng migrations local
 - [x] Phase 1: Thiết kế + hạ tầng
 - [x] Phase 2: API backend (auth, students, classes, shifts, teachers, attendance, grades, fees)
 - [x] Phase 3 web: auth, students, classes, teachers, shifts, attendance, grades
-- [x] CI/CD: auto-deploy staging on push
+- [ ] CI/CD auto-deploy: workflow có, đang lỗi vì token thiếu quyền Workers Scripts Edit
 
 ### Đang làm / Chưa xong
 - [ ] **Fees web** — code đang ở `git stash@{0}` ("fees-web-wip"). Pop stash, fix E2E approve test, fix NativeSelect className, merge.
@@ -63,7 +63,6 @@ pnpm db:migrate:local # Áp dụng migrations local
 - [ ] Dashboard tổng quan
 - [ ] Phase 4: Mobile Flutter (đăng nhập, lịch, điểm danh, điểm, học phí)
 - [ ] Phase 5: FCM push notifications
-- [ ] APP_ORIGIN trong wrangler.jsonc cần sửa thành `ecm-api-staging.khovattu.workers.dev`
 
 ### Bugs đã biết
 - Fees E2E: sau approve, list filter "Chờ duyệt" nên không thấy "Đã duyệt" (API trả 200 OK)
