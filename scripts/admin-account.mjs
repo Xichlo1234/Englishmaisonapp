@@ -9,7 +9,8 @@
  * Mật khẩu tạm được sinh ngẫu nhiên, chỉ in ra MỘT lần; người dùng bắt buộc đổi ở lần đăng nhập đầu.
  * Mật khẩu được băm cục bộ (PBKDF2-SHA256), không bao giờ gửi dạng thuần lên Cloudflare.
  */
-import { execFileSync } from 'node:child_process';
+import { execFileSync, execSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { randomBytes, webcrypto } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -51,6 +52,15 @@ function normalizePhone(p) {
   return d;
 }
 
+const WORKERS_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../workers');
+
+/** Chạy `npx ...` trên mọi hệ điều hành (Windows cần shell để gọi npx.cmd; tự đặt ngoặc kép cho tham số). */
+function npx(args, opts) {
+  if (process.platform !== 'win32') return execFileSync('npx', args, opts);
+  const q = (a) => (/^[\w@./:=-]+$/.test(a) ? a : `"${String(a).replace(/"/g, '\\"')}"`);
+  return execSync(['npx', ...args].map(q).join(' '), opts);
+}
+
 function wranglerBase() {
   const a = ['wrangler', 'd1', 'execute', 'DB', flag('remote') ? '--remote' : '--local', '--yes'];
   if (opt('env')) a.push('--env', opt('env'));
@@ -58,8 +68,8 @@ function wranglerBase() {
 }
 
 function queryJson(sql) {
-  const out = execFileSync('npx', [...wranglerBase(), '--json', '--command', sql], {
-    cwd: path.resolve(import.meta.dirname, '../workers'),
+  const out = npx([...wranglerBase(), '--json', '--command', sql], {
+    cwd: WORKERS_DIR,
     encoding: 'utf8',
   });
   return JSON.parse(out)[0].results;
@@ -70,7 +80,7 @@ function runSql(sql) {
   fs.writeFileSync(file, sql, { mode: 0o600 });
   const wranglerArgs = [...wranglerBase(), '--file', file];
   try {
-    execFileSync('npx', wranglerArgs, { cwd: path.resolve(import.meta.dirname, '../workers'), stdio: 'inherit' });
+    npx(wranglerArgs, { cwd: WORKERS_DIR, stdio: 'inherit' });
   } finally {
     fs.rmSync(path.dirname(file), { recursive: true, force: true });
   }
