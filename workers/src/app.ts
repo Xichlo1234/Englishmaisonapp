@@ -20,6 +20,7 @@ import {
 } from './routes/classes.routes';
 import { attendanceRoutes, lessonAttendanceRoutes } from './routes/attendance.routes';
 import { assessmentRoutes, gradingRoutes, studentResultRoutes } from './routes/grades.routes';
+import { adjustmentRoutes, feePlanRoutes, invoiceRoutes, paymentRoutes, studentFeePlanRoutes, studentFeeRoutes } from './routes/fees.routes';
 
 export function createApp() {
   const app = new Hono<AppEnv>();
@@ -32,6 +33,7 @@ export function createApp() {
   api.route('/me', meRoutes);
   api.route('/settings', settingsRoutes);
   api.route('/students', studentResultRoutes);
+  api.route('/students', studentFeeRoutes);
   api.route('/students', studentRoutes);
   api.route('/guardians', guardianRoutes);
   api.route('/files', fileRoutes);
@@ -46,6 +48,11 @@ export function createApp() {
   api.route('/attendance', attendanceRoutes);
   api.route('/grading', gradingRoutes);
   api.route('/assessments', assessmentRoutes);
+  api.route('/fee-plans', feePlanRoutes);
+  api.route('/student-fee-plans', studentFeePlanRoutes);
+  api.route('/invoices', invoiceRoutes);
+  api.route('/payments', paymentRoutes);
+  api.route('/adjustments', adjustmentRoutes);
   api.route('/teachers', teacherRoutes);
   api.route('/users', userRoutes);
 
