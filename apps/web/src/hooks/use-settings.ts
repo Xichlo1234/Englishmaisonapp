@@ -4,6 +4,8 @@ import { api } from '@/lib/api';
 
 export interface PublicSettings {
   center_name?: string;
+  center_address?: string | null;
+  center_phone?: string | null;
   english_levels?: string[];
   grade_bands?: GradeBand[];
 }

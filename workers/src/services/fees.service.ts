@@ -139,6 +139,47 @@ export async function endStudentFeePlan(db: DB, meta: AuditMeta, id: number, eff
 const invoiceCodeSql = (period: string) =>
   sql`printf('HD-%s-%04d', ${period.replace('-', '')}, (SELECT count(*) + 1 FROM invoices WHERE invoice_code LIKE ${`HD-${period.replace('-', '')}-%`}))`;
 
+export interface AbsenceDeduction {
+  amount: number;
+  count: number;
+  sessionTotal: number | null;
+  unitPrice: number | null;
+  sourceInvoiceId: number | null;
+}
+const NO_DEDUCTION: AbsenceDeduction = { amount: 0, count: 0, sessionTotal: null, unitPrice: null, sourceInvoiceId: null };
+
+/**
+ * Every absence (excused or not) in the previous invoice period of the same student fee plan is refunded on the next one:
+ * net fee of that period × absences ÷ non-cancelled lessons held. Each previous invoice is used as a source at most once.
+ */
+export async function absenceDeductionFor(db: DB, sfpId: number, beforeDate: string): Promise<AbsenceDeduction> {
+  const [prev] = await db.all<{ id: number; student_id: number; class_id: number | null; period_start: string; period_end: string; net: number }>(sql`
+    SELECT i.id, i.student_id, sfp.class_id, i.period_start, i.period_end, i.gross_amount - (i.discount_amount - i.absence_deduction) AS net
+      FROM invoices i JOIN student_fee_plans sfp ON sfp.id = i.student_fee_plan_id
+     WHERE i.student_fee_plan_id = ${sfpId} AND i.status NOT IN ('DRAFT', 'CANCELLED')
+       AND i.period_start IS NOT NULL AND i.period_end < ${beforeDate}
+       AND NOT EXISTS (SELECT 1 FROM invoices n WHERE n.absence_source_invoice_id = i.id AND n.status <> 'CANCELLED')
+     ORDER BY i.period_end DESC LIMIT 1`);
+  if (!prev || prev.net <= 0) return NO_DEDUCTION;
+  const [r] = await db.all<{ total: number; absent: number }>(sql`
+    SELECT count(*) AS total,
+           coalesce(sum(EXISTS (SELECT 1 FROM attendance_records ar WHERE ar.lesson_id = l.id AND ar.student_id = ${prev.student_id}
+                                  AND ar.status IN ('EXCUSED', 'UNEXCUSED'))), 0) AS absent
+      FROM lessons l
+     WHERE l.status <> 'CANCELLED' AND l.lesson_date BETWEEN ${prev.period_start} AND ${prev.period_end}
+       ${prev.class_id ? sql`AND l.class_id = ${prev.class_id}` : sql.empty()}
+       AND EXISTS (SELECT 1 FROM class_enrollments ce WHERE ce.class_id = l.class_id AND ce.student_id = ${prev.student_id}
+                     AND ce.start_date <= l.lesson_date AND coalesce(ce.end_date, '9999-12-31') >= l.lesson_date)`);
+  if (!r || !r.total || !r.absent) return { ...NO_DEDUCTION, sessionTotal: r?.total ?? null };
+  return {
+    amount: Math.round((prev.net * r.absent) / r.total),
+    count: r.absent,
+    sessionTotal: r.total,
+    unitPrice: Math.round(prev.net / r.total),
+    sourceInvoiceId: prev.id,
+  };
+}
+
 /**
  * Tạo NHÁP hóa đơn tháng cho học sinh đang học có gói THÁNG hiệu lực trong kỳ (chưa có hóa đơn kỳ đó).
  * Quản lý kiểm tra rồi phát hành (Q7).
@@ -167,12 +208,19 @@ export async function generateMonthlyDrafts(db: DB, meta: AuditMeta, user: AuthU
        AND sfp.effective_from <= ${end} AND coalesce(sfp.effective_to, '9999-12-31') >= ${start}`);
   const todo = candidates.filter((c) => !c.exists_invoice);
   if (todo.length) {
-    const stmts: BatchStatement[] = todo.map((c) => {
+    const deductions = await Promise.all(todo.map((c) => absenceDeductionFor(db, c.sfp_id, start)));
+    const stmts: BatchStatement[] = todo.map((c, idx) => {
       const gross = c.custom_amount ?? c.amount;
-      const discount = computeDiscount(gross, c.discount_type, c.discount_value);
-      return sql`INSERT INTO invoices (invoice_code, student_id, student_fee_plan_id, period_label, period_start, period_end, gross_amount, discount_amount, amount_due, due_date, status, note, created_by)
-                 VALUES (${invoiceCodeSql(period)}, ${c.student_id}, ${c.sfp_id}, ${period}, ${start}, ${end}, ${gross}, ${discount}, ${gross - discount}, ${dueDate}, 'DRAFT',
-                         ${`Học phí ${c.plan_name} tháng ${m}/${y}`}, ${user.id})`;
+      const planDiscount = computeDiscount(gross, c.discount_type, c.discount_value);
+      const d = deductions[idx]!;
+      const absence = Math.min(d.amount, gross - planDiscount);
+      const discount = planDiscount + absence;
+      return sql`INSERT INTO invoices (invoice_code, student_id, student_fee_plan_id, period_label, period_start, period_end, gross_amount, discount_amount,
+                                       absence_deduction, absence_count, absence_session_total, absence_unit_price, absence_source_invoice_id,
+                                       amount_due, due_date, status, note, created_by)
+                 VALUES (${invoiceCodeSql(period)}, ${c.student_id}, ${c.sfp_id}, ${period}, ${start}, ${end}, ${gross}, ${discount},
+                         ${absence}, ${d.count}, ${d.sessionTotal}, ${d.unitPrice}, ${d.sourceInvoiceId},
+                         ${gross - discount}, ${dueDate}, 'DRAFT', ${`Học phí ${c.plan_name} tháng ${m}/${y}`}, ${user.id})`;
     });
     stmts.push(auditInsert(db, meta, { action: 'invoice.generate', entityType: 'invoice', after: { period, created: todo.length } }));
     await runBatch(db, stmts);
@@ -221,27 +269,33 @@ export async function createInvoice(
     );
     if (dup!.n) throw Errors.conflict('DUPLICATE_INVOICE', 'Đã có hóa đơn cho kỳ này');
   }
+  const d = input.studentFeePlanId && input.periodStart ? await absenceDeductionFor(db, input.studentFeePlanId, input.periodStart) : NO_DEDUCTION;
+  const absence = Math.min(d.amount, input.grossAmount - input.discountAmount);
+  const discount = input.discountAmount + absence;
   const period = vnDate().slice(0, 7);
   const today = vnDate();
   const status: InvoiceStatus = !input.issue ? 'DRAFT' : input.dueDate < today ? 'OVERDUE' : 'UNPAID';
   const [row] = await db.all<{ id: number; invoice_code: string }>(sql`
     INSERT INTO invoices (invoice_code, student_id, student_fee_plan_id, period_label, period_start, period_end, sessions_purchased,
-                          gross_amount, discount_amount, amount_due, due_date, status, note, issued_at, created_by)
+                          gross_amount, discount_amount, absence_deduction, absence_count, absence_session_total, absence_unit_price, absence_source_invoice_id,
+                          amount_due, due_date, status, note, issued_at, created_by)
     VALUES (${invoiceCodeSql(period)}, ${input.studentId}, ${input.studentFeePlanId ?? null}, ${input.periodLabel}, ${input.periodStart ?? null},
-            ${input.periodEnd ?? null}, ${input.sessionsPurchased ?? null}, ${input.grossAmount}, ${input.discountAmount},
-            ${input.grossAmount - input.discountAmount}, ${input.dueDate}, ${status}, ${input.note ?? null}, ${input.issue ? nowIso() : null}, ${user.id})
+            ${input.periodEnd ?? null}, ${input.sessionsPurchased ?? null}, ${input.grossAmount}, ${discount},
+            ${absence}, ${d.count}, ${d.sessionTotal}, ${d.unitPrice}, ${d.sourceInvoiceId},
+            ${input.grossAmount - discount}, ${input.dueDate}, ${status}, ${input.note ?? null}, ${input.issue ? nowIso() : null}, ${user.id})
     RETURNING id, invoice_code`);
   await auditInsert(db, meta, { action: 'invoice.create', entityType: 'invoice', entityId: row!.id, after: input });
   return { id: row!.id, invoiceCode: row!.invoice_code };
 }
 
 export async function updateDraftInvoice(db: DB, meta: AuditMeta, id: number, input: { discountAmount?: number; dueDate?: string; note?: string | null }) {
-  const [i] = await db.all<{ status: string; gross_amount: number; discount_amount: number; due_date: string | null; note: string | null }>(
-    sql`SELECT status, gross_amount, discount_amount, due_date, note FROM invoices WHERE id = ${id}`,
+  const [i] = await db.all<{ status: string; gross_amount: number; discount_amount: number; absence_deduction: number; due_date: string | null; note: string | null }>(
+    sql`SELECT status, gross_amount, discount_amount, absence_deduction, due_date, note FROM invoices WHERE id = ${id}`,
   );
   if (!i) throw Errors.notFound('Hóa đơn');
   if (i.status !== 'DRAFT') throw Errors.business('NOT_DRAFT', 'Chỉ sửa được hóa đơn nháp. Hóa đơn đã phát hành cần điều chỉnh qua phiếu điều chỉnh.');
-  const discount = input.discountAmount ?? i.discount_amount;
+  // discountAmount from the client is the manual discount only; the absence deduction stays on top of it.
+  const discount = input.discountAmount !== undefined ? input.discountAmount + i.absence_deduction : i.discount_amount;
   if (discount > i.gross_amount) throw Errors.validation([{ path: 'discountAmount', message: 'Giảm giá lớn hơn số tiền' }]);
   await runBatch(db, [
     sql`UPDATE invoices SET discount_amount = ${discount}, amount_due = gross_amount - ${discount}, due_date = ${input.dueDate ?? i.due_date},
@@ -585,4 +639,97 @@ export async function remindDue(db: DB, today = vnDate()) {
       FROM invoices i JOIN students s ON s.id = i.student_id JOIN student_guardians sg ON sg.student_id = s.id JOIN guardians g ON g.id = sg.guardian_id
      WHERE i.status IN ('UNPAID', 'PARTIAL') AND i.due_date BETWEEN ${today} AND ${target} AND sg.receive_notifications = 1 AND g.user_id IS NOT NULL`);
   return r.meta.changes ?? 0;
+}
+
+// ───────────── Hóa đơn chi tiết (gửi phụ huynh) ─────────────
+
+async function studentLessons(db: DB, studentId: number, classId: number | null, from: string, to: string) {
+  return db.all<{ date: string; startTime: string; endTime: string; className: string; status: string | null; lateMinutes: number | null }>(sql`
+    SELECT l.lesson_date AS date, l.start_time AS startTime, l.end_time AS endTime, c.name AS className,
+           ar.status, ar.late_minutes AS lateMinutes
+      FROM lessons l JOIN classes c ON c.id = l.class_id
+      LEFT JOIN attendance_records ar ON ar.lesson_id = l.id AND ar.student_id = ${studentId}
+     WHERE l.status <> 'CANCELLED' AND l.lesson_date BETWEEN ${from} AND ${to}
+       ${classId ? sql`AND l.class_id = ${classId}` : sql.empty()}
+       AND EXISTS (SELECT 1 FROM class_enrollments ce WHERE ce.class_id = l.class_id AND ce.student_id = ${studentId}
+                     AND ce.start_date <= l.lesson_date AND coalesce(ce.end_date, '9999-12-31') >= l.lesson_date)
+     ORDER BY l.lesson_date, l.start_time`);
+}
+
+export async function invoiceStatement(db: DB, user: AuthUser, id: number) {
+  const inv = (await getInvoice(db, user, id)) as Awaited<ReturnType<typeof getInvoice>> & Record<string, any>;
+  const [sfp] = inv.student_fee_plan_id
+    ? await db.all<{ class_id: number | null }>(sql`SELECT class_id FROM student_fee_plans WHERE id = ${inv.student_fee_plan_id}`)
+    : [];
+  const classId = sfp?.class_id ?? null;
+  const [source] = inv.absence_source_invoice_id
+    ? await db.all<{ period_label: string; period_start: string; period_end: string }>(
+        sql`SELECT period_label, period_start, period_end FROM invoices WHERE id = ${inv.absence_source_invoice_id}`,
+      )
+    : [];
+  const settings = await db.all<{ key: string; value: string }>(
+    sql`SELECT key, value FROM system_settings WHERE key IN ('center_name', 'center_address', 'center_phone')`,
+  );
+  const center = Object.fromEntries(settings.map((s) => [s.key, JSON.parse(s.value) as string]));
+  const [student] = await db.all<{ full_name: string; student_code: string; date_of_birth: string | null }>(
+    sql`SELECT full_name, student_code, date_of_birth FROM students WHERE id = ${inv.student_id}`,
+  );
+  return {
+    center: { name: center.center_name ?? '', address: center.center_address ?? null, phone: center.center_phone ?? null },
+    student: { id: inv.student_id, fullName: student!.full_name, code: student!.student_code, dateOfBirth: student!.date_of_birth },
+    invoice: {
+      id: inv.id as number,
+      code: inv.invoice_code as string,
+      planName: inv.plan_name as string | null,
+      periodLabel: inv.period_label as string,
+      periodStart: inv.period_start as string | null,
+      periodEnd: inv.period_end as string | null,
+      issuedAt: inv.issued_at as string | null,
+      dueDate: inv.due_date as string | null,
+      status: inv.status,
+      grossAmount: inv.gross_amount as number,
+      discountAmount: (inv.discount_amount as number) - (inv.absence_deduction as number),
+      absenceDeduction: inv.absence_deduction as number,
+      amountDue: inv.amount_due,
+      amountPaid: inv.amount_paid,
+      remaining: inv.remaining,
+      note: inv.note as string | null,
+    },
+    absence: source
+      ? {
+          periodLabel: source.period_label,
+          periodStart: source.period_start,
+          periodEnd: source.period_end,
+          count: inv.absence_count as number,
+          sessionTotal: inv.absence_session_total as number | null,
+          unitPrice: inv.absence_unit_price as number | null,
+          lessons: await studentLessons(db, inv.student_id, classId, source.period_start, source.period_end),
+        }
+      : null,
+    lessons: inv.period_start && inv.period_end ? await studentLessons(db, inv.student_id, classId, inv.period_start, inv.period_end) : [],
+  };
+}
+
+export async function sendInvoiceToGuardians(db: DB, meta: AuditMeta, id: number) {
+  const [i] = await db.all<{ id: number; invoice_code: string; student_id: number; status: string; period_label: string; amount_due: number; amount_paid: number; due_date: string | null; student_name: string }>(sql`
+    SELECT i.id, i.invoice_code, i.student_id, i.status, i.period_label, i.amount_due, i.amount_paid, i.due_date, s.full_name AS student_name
+      FROM invoices i JOIN students s ON s.id = i.student_id WHERE i.id = ${id}`);
+  if (!i) throw Errors.notFound('Hóa đơn');
+  if (i.status === 'DRAFT' || i.status === 'CANCELLED') throw Errors.business('NOT_ISSUED', 'Chỉ gửi được hóa đơn đã phát hành');
+  const guardians = await db.all<{ user_id: number | null; full_name: string }>(sql`
+    SELECT g.user_id, g.full_name FROM student_guardians sg JOIN guardians g ON g.id = sg.guardian_id
+     WHERE sg.student_id = ${i.student_id} AND g.deleted_at IS NULL`);
+  const recipients = guardians.filter((g) => g.user_id).map((g) => g.user_id!);
+  if (!recipients.length)
+    throw Errors.business('NO_GUARDIAN_ACCOUNT', 'Chưa phụ huynh nào của học sinh có tài khoản. Hãy cấp tài khoản ở hồ sơ học sinh, hoặc tải ảnh hóa đơn để gửi qua Zalo/tin nhắn.');
+  const remaining = i.amount_due - i.amount_paid;
+  const body = `Hóa đơn ${i.invoice_code} (${i.period_label}) của ${i.student_name}: ${remaining.toLocaleString('vi-VN')} ₫ cần nộp${i.due_date ? `, hạn ${i.due_date.split('-').reverse().join('/')}` : ''}.`;
+  await runBatch(db, [
+    ...recipients.map(
+      (uid) => sql`INSERT INTO notifications (user_id, type, title, body, data, student_id, push_status)
+                   VALUES (${uid}, 'FEE_DUE', ${`Hóa đơn học phí ${i.period_label}`}, ${body}, ${JSON.stringify({ invoiceId: i.id, kind: 'INVOICE' })}, ${i.student_id}, 'PENDING')`,
+    ),
+    auditInsert(db, meta, { action: 'invoice.send', entityType: 'invoice', entityId: id, after: { recipients } }),
+  ]);
+  return { sent: recipients.length, withoutAccount: guardians.length - recipients.length };
 }

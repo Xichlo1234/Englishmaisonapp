@@ -1,6 +1,45 @@
+import { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Check, Loader2, Pencil, X } from 'lucide-react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PageHeader } from '@/components/common/page';
-import { useAuth } from '@/hooks/use-auth';
+import { Input } from '@/components/ui/input';
+import { errorMessage, PageHeader } from '@/components/common/page';
+import { ME_KEY, useAuth } from '@/hooks/use-auth';
+import { api } from '@/lib/api';
+
+function NameEditor({ name }: { name: string }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(name);
+  const qc = useQueryClient();
+  const save = useMutation({
+    mutationFn: () => api('/me', { method: 'PATCH', body: { fullName: value } }),
+    onSuccess: () => (qc.invalidateQueries({ queryKey: ME_KEY }), setEditing(false), toast.success('Đã đổi tên hiển thị')),
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+  if (!editing)
+    return (
+      <span className="flex items-center gap-1">
+        {name}
+        <Button variant="ghost" size="icon" className="size-7" aria-label="Đổi tên hiển thị" onClick={() => (setValue(name), setEditing(true))}>
+          <Pencil className="size-3.5" />
+        </Button>
+      </span>
+    );
+  const valid = value.trim().length >= 2;
+  return (
+    <form className="flex items-center gap-1" onSubmit={(e) => (e.preventDefault(), valid && save.mutate())}>
+      <Input aria-label="Họ tên mới" className="h-8" value={value} autoFocus onChange={(e) => setValue(e.target.value)} />
+      <Button type="submit" size="icon" className="size-8 shrink-0" disabled={!valid || save.isPending} aria-label="Lưu tên">
+        {save.isPending ? <Loader2 className="animate-spin" /> : <Check />}
+      </Button>
+      <Button type="button" variant="ghost" size="icon" className="size-8 shrink-0" aria-label="Hủy" onClick={() => setEditing(false)}>
+        <X />
+      </Button>
+    </form>
+  );
+}
 import { ChangePasswordForm } from './ChangePasswordForm';
 
 export function AccountPage() {
@@ -16,7 +55,7 @@ export function AccountPage() {
           <CardContent>
             <dl className="grid grid-cols-[110px_1fr] gap-y-2 text-sm">
               <dt className="text-muted-foreground">Họ tên</dt>
-              <dd>{user?.fullName}</dd>
+              <dd>{user && <NameEditor name={user.fullName} />}</dd>
               <dt className="text-muted-foreground">Vai trò</dt>
               <dd>{user?.roleName}</dd>
               <dt className="text-muted-foreground">Email</dt>

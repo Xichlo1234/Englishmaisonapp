@@ -70,6 +70,14 @@ invoiceRoutes.get('/:id', requireAnyPermission('fees.read', 'self.read'), async 
   const { id } = parseParams(c, idParam);
   return c.json(await fee.getInvoice(getDb(c.env.DB), c.get('user'), id));
 });
+invoiceRoutes.get('/:id/statement', requireAnyPermission('fees.read', 'self.read'), async (c) => {
+  const { id } = parseParams(c, idParam);
+  return c.json(await fee.invoiceStatement(getDb(c.env.DB), c.get('user'), id));
+});
+invoiceRoutes.post('/:id/send', write, async (c) => {
+  const { id } = parseParams(c, idParam);
+  return c.json(await fee.sendInvoiceToGuardians(getDb(c.env.DB), auditMetaFrom(c), id));
+});
 invoiceRoutes.patch('/:id', write, async (c) => {
   const { id } = parseParams(c, idParam);
   await fee.updateDraftInvoice(getDb(c.env.DB), auditMetaFrom(c), id, await parseJson(c, invoiceDraftUpdateSchema));

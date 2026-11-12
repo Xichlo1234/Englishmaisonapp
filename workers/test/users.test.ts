@@ -12,7 +12,7 @@ const phone = () => `09${String(Math.floor(Math.random() * 1e8)).padStart(8, '0'
 
 const post = (path: string, body: unknown, token = adminToken) => api(path, json(body, { headers: bearer(token) }));
 const patch = (path: string, body: unknown, token = adminToken) => api(path, { ...json(body, { headers: bearer(token) }), method: 'PATCH' });
-const list = async (query = '', token = adminToken) =>
+const list_ = async (query = '', token = adminToken) =>
   ((await (await api(`/users${query}`, { headers: bearer(token) })).json()) as { data: UserRow[] }).data;
 const tokenOf = async (u: TestUser) => (await loginMobile(u)).accessToken;
 
@@ -38,10 +38,10 @@ describe('Danh sách tài khoản', () => {
   it('lọc theo vai trò, tìm không dấu, chỉ người có users.manage xem được', async () => {
     const owner = await createUser({ role: 'OWNER' });
     const teacher = await createUser({ role: 'TEACHER' });
-    const owners = await list('?role=OWNER');
+    const owners = await list_('?role=OWNER');
     expect(owners.every((u) => u.role === 'OWNER')).toBe(true);
     expect(owners.some((u) => u.id === owner.id)).toBe(true);
-    const found = await list(`?q=${encodeURIComponent(owner.email.toUpperCase())}`);
+    const found = await list_(`?q=${encodeURIComponent(owner.email.toUpperCase())}`);
     expect(found.map((u) => u.id)).toEqual([owner.id]);
     expect((await api('/users', { headers: bearer(await tokenOf(teacher)) })).status).toBe(403);
   });
@@ -49,9 +49,9 @@ describe('Danh sách tài khoản', () => {
   it('tài khoản bị khóa do đăng nhập sai hiện ở bộ lọc "LOCKED" và mở khóa được', async () => {
     const u = await createUser({ role: 'OWNER' });
     await env.DB.prepare(`UPDATE users SET locked_until = '2999-01-01T00:00:00.000Z' WHERE id = ?1`).bind(u.id).run();
-    expect((await list('?status=LOCKED')).some((x) => x.id === u.id)).toBe(true);
+    expect((await list_('?status=LOCKED')).some((x) => x.id === u.id)).toBe(true);
     expect((await post(`/users/${u.id}/unlock`, {})).status).toBe(200);
-    expect((await list('?status=LOCKED')).some((x) => x.id === u.id)).toBe(false);
+    expect((await list_('?status=LOCKED')).some((x) => x.id === u.id)).toBe(false);
     expect((await loginMobile(u)).res.status).toBe(200);
   });
 });
@@ -101,7 +101,7 @@ describe('Khóa, đổi vai trò, đăng xuất', () => {
     expect((await api('/me', { headers: bearer(ot) })).status).toBe(401);
     const asOwner = await tokenOf(other);
     expect((await patch(`/users/${admin.id}`, { status: 'DISABLED' }, asOwner)).status).toBe(403);
-    expect((await list('?role=OWNER')).some((u) => u.id === other.id)).toBe(true);
+    expect((await list_('?role=OWNER')).some((u) => u.id === other.id)).toBe(true);
   });
 
   it('chủ lớp không đổi vai trò, không khóa giáo viên qua trang tài khoản', async () => {
@@ -165,5 +165,31 @@ describe('Cấp tài khoản phụ huynh', () => {
     const g = await newGuardianId();
     const teacher = await createUser({ role: 'TEACHER' });
     expect((await post(`/guardians/${g.id}/account`, {}, await tokenOf(teacher))).status).toBe(403);
+  });
+});
+
+describe('Tên hiển thị', () => {
+  it('người dùng tự đổi họ tên; hồ sơ giáo viên đổi theo', async () => {
+    const r = await post('/teachers', { fullName: 'Giáo Viên Cũ', email: `gvten${uid()}@test.vn` });
+    const { tempPassword } = (await r.json()) as { tempPassword: string };
+    const list = await list_('?role=TEACHER');
+    const t = list.find((u) => u.email?.startsWith('gvten'))!;
+    await env.DB.prepare(`UPDATE users SET must_change_password = 0 WHERE id = ?1`).bind(t.id).run();
+    const tok = await tokenOf({ id: t.id, email: t.email!, password: tempPassword });
+    expect((await patch('/me', { fullName: 'nguyễn thị mới' }, tok)).status).toBe(200);
+    const me = (await (await api('/me', { headers: bearer(tok) })).json()) as { fullName: string };
+    expect(me.fullName).toBe('Nguyễn Thị Mới');
+    const teachers = (await (await api('/teachers?includeInactive=1', { headers: bearer(adminToken) })).json()) as { data: { userId: number; fullName: string }[] };
+    expect(teachers.data.find((x) => x.userId === t.id)?.fullName).toBe('Nguyễn Thị Mới');
+  });
+
+  it('quản trị viên đổi tên/địa chỉ/SĐT trung tâm; chủ lớp không được', async () => {
+    const owner = await createUser({ role: 'OWNER' });
+    const body = { name: 'English Maison', address: '12 Lê Lợi, Huế', phone: '0234 3888 999' };
+    expect((await patch('/settings/center', body, await tokenOf(owner))).status).toBe(403);
+    expect((await patch('/settings/center', body)).status).toBe(200);
+    const pub = (await (await api('/settings/public', { headers: bearer(adminToken) })).json()) as Record<string, string>;
+    expect(pub).toMatchObject({ center_name: 'English Maison', center_address: '12 Lê Lợi, Huế', center_phone: '0234 3888 999' });
+    expect((await patch('/settings/center', { name: 'X', address: null, phone: null })).status).toBe(422);
   });
 });

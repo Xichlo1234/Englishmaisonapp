@@ -40,7 +40,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/giao-vien', label: 'Giáo viên', icon: UserSquare2, permission: 'teachers.write', ready: true, tone: tone('bg-orange-100 text-orange-600', 'bg-orange-50 text-orange-700 ring-orange-200') },
   { to: '/quan-ly-tai-khoan', label: 'Tài khoản', icon: KeyRound, permission: 'users.manage', ready: true, tone: tone('bg-rose-100 text-rose-600', 'bg-rose-50 text-rose-700 ring-rose-200') },
   { to: '/bao-cao', label: 'Báo cáo', icon: BarChart3, permission: 'reports.read', ready: false, tone: tone('bg-cyan-100 text-cyan-600', 'bg-cyan-50 text-cyan-700 ring-cyan-200') },
-  { to: '/cai-dat', label: 'Cài đặt', icon: Settings, permission: 'settings.manage', ready: false, tone: tone('bg-slate-200 text-slate-600', 'bg-slate-100 text-slate-800 ring-slate-300') },
+  { to: '/cai-dat', label: 'Cài đặt', icon: Settings, permission: 'settings.manage', ready: true, tone: tone('bg-slate-200 text-slate-600', 'bg-slate-100 text-slate-800 ring-slate-300') },
 ];
 
 export const APP_ICON = GraduationCap;

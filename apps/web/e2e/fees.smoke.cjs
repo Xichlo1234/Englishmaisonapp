@@ -121,6 +121,24 @@ const call = (page, method, p, body) =>
       await page.goBack();
     });
 
+    await step('Hóa đơn chi tiết: tải ảnh PNG; gửi phụ huynh chưa có tài khoản → báo rõ', async () => {
+      await page.getByRole('link', { name: 'Hóa đơn chi tiết' }).click();
+      await page.getByText('HÓA ĐƠN HỌC PHÍ').waitFor();
+      await page.getByText('Lý Thanh Tâm').waitFor();
+      await page.getByText('Bằng chữ: Sáu trăm hai mươi nghìn đồng').waitFor();
+      const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Tải ảnh' }).click()]);
+      const file = path.join(SHOTS, 'f06-invoice-image.png');
+      await dl.saveAs(file);
+      const buf = fs.readFileSync(file);
+      if (buf.readUInt32BE(0) !== 0x89504e47) throw new Error('File tải về không phải PNG');
+      const width = buf.readUInt32BE(16);
+      if (width !== 1520) throw new Error(`Ảnh rộng ${width}px, mong đợi 1520px (760 × 2)`);
+      if (!/^HD-\d{6}-\d{4}-ly-thanh-tam\.png$/.test(dl.suggestedFilename())) throw new Error(`Tên file: ${dl.suggestedFilename()}`);
+      await page.getByRole('button', { name: 'Gửi cho phụ huynh' }).click();
+      await page.getByText(/Chưa phụ huynh nào của học sinh có tài khoản/).waitFor();
+      await page.goBack();
+    });
+
     await step('Đề nghị hoàn 200.000 ₫ → chờ duyệt (chưa trừ) → duyệt → còn đã nộp 800.000 ₫', async () => {
       await page.getByRole('button', { name: 'Đề nghị điều chỉnh' }).click();
       await page.fill('#adj-amount', '200000');

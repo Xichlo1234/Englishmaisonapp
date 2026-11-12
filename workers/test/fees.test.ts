@@ -197,6 +197,87 @@ describe('Quá hạn, gói buổi, phân quyền', () => {
     expect(f.sessions).toMatchObject({ purchased: 12, used: 3, remaining: 9 });
   });
 
+  it('khấu trừ buổi vắng (có phép + không phép) của kỳ trước vào hóa đơn kỳ sau, mỗi kỳ chỉ trừ một lần', async () => {
+    const sid = await newStudent();
+    const plan = await newPlan('MONTHLY', 1_800_000);
+    await post(`/students/${sid}/fee-plans`, { feePlanId: plan, effectiveFrom: '2026-10-01' });
+    const t = await post('/teachers', { fullName: 'GV Vắng', email: `gv${uid()}@t.vn` });
+    const teacherId = ((await t.json()) as { id: number }).id;
+    const shift = ((await (await post('/shifts', { name: `C${uid()}`, startTime: '05:00', endTime: '06:00' })).json()) as { id: number }).id;
+    const cls = ((await (await post('/classes', { classCode: `V${uid()}`, name: 'Lớp vắng', mainTeacherId: teacherId, maxStudents: 5, startDate: '2026-10-01', schedules: [{ shiftId: shift, weekday: 7 }] })).json()) as { id: number }).id;
+    await env.DB.prepare(`INSERT INTO class_enrollments (class_id, student_id, start_date, status) VALUES (?, ?, '2026-10-01', 'ACTIVE')`).bind(cls, sid).run();
+    const marker = await createUser();
+    // 8 buổi diễn ra trong tháng 10 + 1 buổi bị hủy (không tính); vắng 2 có phép + 1 không phép; muộn vẫn tính là đi học
+    const statuses = ['EXCUSED', 'EXCUSED', 'UNEXCUSED', 'LATE', 'PRESENT', 'PRESENT', 'PRESENT', 'PRESENT'];
+    for (const [i, st] of statuses.entries()) {
+      const l = await env.DB.prepare(`INSERT INTO lessons (class_id, lesson_date, start_time, end_time, teacher_id) VALUES (?, ?, '05:00', '06:00', ?) RETURNING id`)
+        .bind(cls, `2026-10-${String(i * 3 + 2).padStart(2, '0')}`, teacherId)
+        .first<{ id: number }>();
+      await env.DB.prepare(`INSERT INTO attendance_records (lesson_id, student_id, status, marked_by, marked_at) VALUES (?, ?, ?, ?, '2026-10-01T00:00:00Z')`).bind(l!.id, sid, st, marker.id).run();
+    }
+    await env.DB.prepare(`INSERT INTO lessons (class_id, lesson_date, start_time, end_time, teacher_id, status) VALUES (?, '2026-10-30', '05:00', '06:00', ?, 'CANCELLED')`).bind(cls, teacherId).run();
+
+    await post('/invoices/generate', { period: '2026-10' });
+    const oct = (await get<{ data: { id: number; amountDue: number }[] }>(`/invoices?studentId=${sid}&period=2026-10&status=ALL`)).data[0]!;
+    expect(oct.amountDue).toBe(1_800_000);
+    // nháp kỳ trước chưa phát hành thì chưa làm căn cứ khấu trừ
+    await post('/invoices/generate', { period: '2026-11' });
+    let nov = (await get<{ data: { id: number; amountDue: number }[] }>(`/invoices?studentId=${sid}&period=2026-11&status=ALL`)).data[0]!;
+    expect(nov.amountDue).toBe(1_800_000);
+    expect((await post(`/invoices/${nov.id}/cancel`, { reason: 'Tạo lại sau khi phát hành kỳ trước' })).status).toBe(200);
+
+    await post('/invoices/issue', { ids: [oct.id] });
+    await post('/invoices/generate', { period: '2026-11' });
+    nov = (await get<{ data: { id: number; amountDue: number; status: string }[] }>(`/invoices?studentId=${sid}&period=2026-11`)).data[0]!;
+    expect(nov.amountDue).toBe(1_125_000); // 1.800.000 − 3 × 225.000
+    const d = await get<{ gross_amount: number; discount_amount: number; absence_deduction: number; absence_count: number; absence_session_total: number; absence_unit_price: number }>(`/invoices/${nov.id}`);
+    expect(d).toMatchObject({ gross_amount: 1_800_000, discount_amount: 675_000, absence_deduction: 675_000, absence_count: 3, absence_session_total: 8, absence_unit_price: 225_000 });
+
+    // nháp: chưa gửi được cho phụ huynh
+    expect(((await (await post(`/invoices/${nov.id}/send`, {})).json()) as Err).error.code).toBe('NOT_ISSUED');
+
+    // sửa giảm giá tay trên nháp: khoản trừ buổi vắng vẫn giữ
+    expect((await patch(`/invoices/${nov.id}`, { discountAmount: 100_000 })).status).toBe(200);
+    expect(await get(`/invoices/${nov.id}`)).toMatchObject({ discount_amount: 775_000, absence_deduction: 675_000, amount_due: 1_025_000 });
+
+    await post('/invoices/issue', { ids: [nov.id] });
+    type Statement = {
+      center: { name: string };
+      student: { fullName: string };
+      invoice: { grossAmount: number; discountAmount: number; absenceDeduction: number; amountDue: number };
+      absence: { periodLabel: string; count: number; sessionTotal: number; unitPrice: number; lessons: { date: string; status: string | null }[] };
+    };
+    const st = await get<Statement>(`/invoices/${nov.id}/statement`);
+    expect(st.invoice).toMatchObject({ grossAmount: 1_800_000, discountAmount: 100_000, absenceDeduction: 675_000, amountDue: 1_025_000 });
+    expect(st.absence).toMatchObject({ periodLabel: '2026-10', count: 3, sessionTotal: 8, unitPrice: 225_000 });
+    expect(st.absence.lessons.map((l) => l.status)).toEqual(statuses);
+    expect(st.center.name).toBeTruthy();
+
+    // gửi cho phụ huynh: chưa có tài khoản → báo rõ; cấp tài khoản → gửi được, phụ huynh xem được hóa đơn chi tiết của con
+    expect(((await (await post(`/invoices/${nov.id}/send`, {})).json()) as Err).error.code).toBe('NO_GUARDIAN_ACCOUNT');
+    const detail = await get<{ guardians: { id: number; phone: string }[] }>(`/students/${sid}`);
+    const acc = (await (await post(`/guardians/${detail.guardians[0]!.id}/account`, {})).json()) as { login: string; tempPassword: string };
+    const sent = await post(`/invoices/${nov.id}/send`, {});
+    expect(await sent.json()).toEqual({ sent: 1, withoutAccount: 0 });
+    const gl = await api('/auth/login', json({ identifier: acc.login, password: acc.tempPassword, client: 'MOBILE' }));
+    const gToken = ((await gl.json()) as { accessToken: string }).accessToken;
+    await env.DB.prepare(`UPDATE users SET must_change_password = 0 WHERE phone = ?`).bind(acc.login).run();
+    const gs = await api(`/invoices/${nov.id}/statement`, { headers: bearer(gToken) });
+    expect(gs.status).toBe(200);
+    expect(((await gs.json()) as Statement).invoice.amountDue).toBe(1_025_000);
+    const n = await env.DB.prepare(`SELECT type, data FROM notifications WHERE user_id = (SELECT id FROM users WHERE phone = ?)`).bind(acc.login).first<{ type: string; data: string }>();
+    expect(n).toMatchObject({ type: 'FEE_DUE' });
+    expect(JSON.parse(n!.data)).toEqual({ invoiceId: nov.id, kind: 'INVOICE' });
+    // phụ huynh học sinh khác không xem được
+    const other = await createUser({ role: 'GUARDIAN' });
+    expect((await api(`/invoices/${nov.id}/statement`, { headers: bearer((await loginMobile(other)).accessToken) })).status).toBe(404);
+
+    // tháng 10 đã được dùng làm căn cứ → tháng 12 không trừ lại
+    await post('/invoices/generate', { period: '2026-12' });
+    const dec = (await get<{ data: { amountDue: number }[] }>(`/invoices?studentId=${sid}&period=2026-12&status=ALL`)).data[0]!;
+    expect(dec.amountDue).toBe(1_800_000); // tháng 11 chưa có buổi học nào trong lớp này
+  });
+
   it('sổ thu tổng hợp theo phương thức', async () => {
     const { invoiceId } = await issuedInvoice();
     await api(`/invoices/${invoiceId}/payments`, json({ amount: 200_000, method: 'BANK_TRANSFER', referenceNo: 'FT123' }, { headers: { ...bearer(admin), 'Idempotency-Key': crypto.randomUUID() } }));

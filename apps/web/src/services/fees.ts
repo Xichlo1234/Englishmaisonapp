@@ -1,4 +1,4 @@
-import type { InvoiceStatus } from '@ecm/shared';
+import type { AttendanceStatus, InvoiceStatus } from '@ecm/shared';
 import { api } from '@/lib/api';
 
 export interface FeePlan {
@@ -71,6 +71,10 @@ export interface InvoiceDetail {
   sessions_purchased: number | null;
   gross_amount: number;
   discount_amount: number;
+  absence_deduction: number;
+  absence_count: number;
+  absence_session_total: number | null;
+  absence_unit_price: number | null;
   amount_due: number;
   amount_paid: number;
   remaining: number;
@@ -112,9 +116,45 @@ export const feeKeys = {
   adjustments: (s?: string) => ['fees', 'adjustments', s ?? 'all'] as const,
   student: (id: number) => ['fees', 'student', id] as const,
   receipt: (id: number) => ['fees', 'receipt', id] as const,
+  statement: (id: number) => ['fees', 'statement', id] as const,
 };
 
+export interface StatementLesson {
+  date: string;
+  startTime: string;
+  endTime: string;
+  className: string;
+  status: AttendanceStatus | null;
+  lateMinutes: number | null;
+}
+export interface InvoiceStatement {
+  center: { name: string; address: string | null; phone: string | null };
+  student: { id: number; fullName: string; code: string; dateOfBirth: string | null };
+  invoice: {
+    id: number;
+    code: string;
+    planName: string | null;
+    periodLabel: string;
+    periodStart: string | null;
+    periodEnd: string | null;
+    issuedAt: string | null;
+    dueDate: string | null;
+    status: InvoiceStatus;
+    grossAmount: number;
+    discountAmount: number;
+    absenceDeduction: number;
+    amountDue: number;
+    amountPaid: number;
+    remaining: number;
+    note: string | null;
+  };
+  absence: { periodLabel: string; periodStart: string; periodEnd: string; count: number; sessionTotal: number | null; unitPrice: number | null; lessons: StatementLesson[] } | null;
+  lessons: StatementLesson[];
+}
+
 export const feesApi = {
+  statement: (id: number) => api<InvoiceStatement>(`/invoices/${id}/statement`),
+  sendToGuardians: (id: number) => api<{ sent: number; withoutAccount: number }>(`/invoices/${id}/send`, { body: {} }),
   plans: () => api<{ data: FeePlan[] }>('/fee-plans'),
   createPlan: (b: unknown) => api('/fee-plans', { body: b }),
   updatePlan: (id: number, b: unknown) => api(`/fee-plans/${id}`, { method: 'PATCH', body: b }),

@@ -5,10 +5,10 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd)
 SHOTS=${SHOTS_DIR:-$ROOT/e2e-shots}
 (cd "$ROOT/apps/web" && npx vite build >/dev/null)
 cleanup() {
-  pkill -f "wrangler dev" 2>/dev/null || true
+  pkill -f "wrangler(\.js)? dev" 2>/dev/null || true
   pkill -f "bin/workerd" 2>/dev/null || true
   # đợi tiến trình thoát hẳn (tránh xóa D1 local khi workerd còn ghi)
-  for i in $(seq 1 40); do pgrep -f "bin/workerd|wrangler dev" >/dev/null || break; sleep 0.25; done
+  for i in $(seq 1 40); do pgrep -f "bin/workerd|wrangler(\.js)? dev" >/dev/null || break; sleep 0.25; done
 }
 trap cleanup EXIT
 FAILED=0

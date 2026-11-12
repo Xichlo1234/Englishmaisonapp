@@ -55,6 +55,9 @@ pnpm db:migrate:local # Áp dụng migrations local
 - [x] Phase 1: Thiết kế + hạ tầng
 - [x] Phase 2: API backend (auth, students, classes, shifts, teachers, attendance, grades, fees)
 - [x] Phase 3 web: auth, students, classes, teachers, shifts, attendance, grades, fees (gói học phí, giảm giá, hóa đơn theo kỳ, thu tiền, phiếu thu, điều chỉnh có duyệt, sổ thu)
+- [x] Khấu trừ buổi vắng: mọi buổi vắng (có phép + không phép) của kỳ trước trừ vào hóa đơn kỳ sau = học phí ròng kỳ trước × số buổi vắng ÷ số buổi đã diễn ra (bỏ buổi hủy). Lưu trong `invoices.absence_*`; phần trừ nằm TRONG `discount_amount` (ràng buộc CHECK amount_due = gross − discount). `absenceDeductionFor()` trong fees.service.ts; mỗi hóa đơn kỳ trước chỉ làm căn cứ một lần.
+- [x] Hóa đơn chi tiết `/hoc-phi/hoa-don/:id/chi-tiet`: tải ảnh PNG (html-to-image, tên file không dấu), in, gửi phụ huynh (tạo notification FEE_DUE, phụ huynh xem qua API `/invoices/:id/statement` — app mobile hiển thị sau).
+- [x] Cài đặt `/cai-dat` (ADMIN): tên/địa chỉ/SĐT trung tâm (`PATCH /settings/center`). Người dùng tự đổi họ tên ở `/tai-khoan` (đồng bộ sang hồ sơ giáo viên/phụ huynh).
 - [x] Quản lý tài khoản (`/quan-ly-tai-khoan`): tạo ADMIN/OWNER, khóa/mở, mở khóa đăng nhập, đổi vai trò, đăng xuất mọi thiết bị, cấp mật khẩu tạm; cấp tài khoản phụ huynh (đăng nhập bằng SĐT) ở trang học sinh
 - [x] CI/CD: push main → test → deploy staging tự động
 

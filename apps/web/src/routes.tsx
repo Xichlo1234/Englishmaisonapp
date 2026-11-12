@@ -15,6 +15,8 @@ import { ClassDetailPage } from '@/pages/classes/ClassDetailPage';
 import { ClassFormPage } from '@/pages/classes/ClassFormPage';
 import { ClassesListPage } from '@/pages/classes/ClassesListPage';
 import { ShiftsPage } from '@/pages/shifts/ShiftsPage';
+import { InvoiceStatementPage } from './pages/fees/InvoiceStatementPage';
+import { SettingsPage } from './pages/settings/SettingsPage';
 import { UsersPage } from './pages/users/UsersPage';
 import { TeachersPage } from '@/pages/teachers/TeachersPage';
 import { AttendancePage } from '@/pages/attendance/AttendancePage';
@@ -94,9 +96,11 @@ export const router = createBrowserRouter([
       { path: 'diem-so/:id', element: <RequirePermission perm="grades.read"><AssessmentSheetPage /></RequirePermission> },
       { path: 'hoc-phi', element: <RequirePermission perm="fees.read"><FeesPage /></RequirePermission> },
       { path: 'hoc-phi/hoa-don/:id', element: <RequirePermission perm="fees.read"><InvoiceDetailPage /></RequirePermission> },
+      { path: 'hoc-phi/hoa-don/:id/chi-tiet', element: <RequirePermission perm="fees.read"><InvoiceStatementPage /></RequirePermission> },
       { path: 'hoc-phi/phieu-thu/:id', element: <RequirePermission perm="fees.read"><ReceiptPage /></RequirePermission> },
       { path: 'ca-hoc', element: <RequirePermission perm="classes.read"><ShiftsPage /></RequirePermission> },
       { path: 'giao-vien', element: <RequirePermission perm="teachers.write"><TeachersPage /></RequirePermission> },
+      { path: 'cai-dat', element: <RequirePermission perm="settings.manage"><SettingsPage /></RequirePermission> },
       { path: 'quan-ly-tai-khoan', element: <RequirePermission perm="users.manage"><UsersPage /></RequirePermission> },
       { path: '*', element: <NotFound /> },
     ],

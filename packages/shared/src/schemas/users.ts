@@ -40,3 +40,10 @@ export const userUpdateSchema = z
 
 export type StaffCreateInput = z.infer<typeof staffCreateSchema>;
 export type UserUpdateInput = z.infer<typeof userUpdateSchema>;
+
+export const centerSettingsSchema = z.object({
+  name: z.string().trim().min(2, 'Nhập tên trung tâm').max(120),
+  address: z.string().trim().max(250).nullable().transform((v) => v || null),
+  phone: z.string().trim().max(30).nullable().transform((v) => v || null),
+});
+export type CenterSettingsInput = z.infer<typeof centerSettingsSchema>;

@@ -637,6 +637,12 @@ export const invoices = sqliteTable(
     sessionsPurchased: integer('sessions_purchased'),
     grossAmount: integer('gross_amount').notNull(),
     discountAmount: integer('discount_amount').notNull().default(0),
+    // Part of discount_amount that is the previous period's absence deduction (shown as its own line).
+    absenceDeduction: integer('absence_deduction').notNull().default(0),
+    absenceCount: integer('absence_count').notNull().default(0),
+    absenceSessionTotal: integer('absence_session_total'),
+    absenceUnitPrice: integer('absence_unit_price'),
+    absenceSourceInvoiceId: integer('absence_source_invoice_id'),
     amountDue: integer('amount_due').notNull(),
     amountPaid: integer('amount_paid').notNull().default(0),
     dueDate: text('due_date'),

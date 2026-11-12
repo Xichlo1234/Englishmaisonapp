@@ -157,6 +157,23 @@ async function readCredential(page) {
       await row.getByText('Quản trị viên', { exact: true }).waitFor();
     });
 
+    await step('Cài đặt: đổi tên trung tâm → góc trái đổi theo; trang Tài khoản: tự đổi họ tên', async () => {
+      await page.getByRole('link', { name: 'Cài đặt' }).click();
+      await page.fill('#c-name', 'English Maison');
+      await page.fill('#c-address', '12 Lê Lợi, TP Huế');
+      await page.fill('#c-phone', '0234 3888 999');
+      await page.getByRole('button', { name: 'Lưu' }).click();
+      await page.getByText('Đã lưu thông tin trung tâm').waitFor();
+      await page.locator('aside').getByText('English Maison').waitFor();
+      await shot(page, 'u04-settings');
+      await page.goto(`${BASE}/tai-khoan`);
+      await page.getByRole('button', { name: 'Đổi tên hiển thị' }).click();
+      await page.getByLabel('Họ tên mới').fill('nguyễn văn quản trị');
+      await page.getByRole('button', { name: 'Lưu tên' }).click();
+      await page.getByText('Đã đổi tên hiển thị').waitFor();
+      await page.locator('header').getByText('Nguyễn Văn Quản Trị').waitFor();
+    });
+
     await step('Giao diện điện thoại (390px) không tràn ngang', async () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await page.goto(`${BASE}/quan-ly-tai-khoan`);

@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { changePasswordSchema, normalizePersonName, phoneSchema, registerDeviceSchema } from '@ecm/shared';
 import type { AppEnv } from '../env';
 import { getDb } from '../db/client';
-import { deviceTokens, users } from '../db/schema';
+import { deviceTokens, guardians, teachers, users } from '../db/schema';
 import { Errors } from '../lib/errors';
 import { nowIso } from '../lib/time';
 import { requireAuth } from '../middleware/auth';
@@ -40,6 +40,13 @@ meRoutes.patch('/', async (c) => {
   }
   await db.batch([
     db.update(users).set(patch).where(eq(users.id, u.id)),
+    // Teacher/guardian profiles carry their own name column; keep them in step with the login account.
+    ...(patch.fullName
+      ? [
+          db.update(teachers).set({ fullName: patch.fullName, updatedAt: nowIso() }).where(eq(teachers.userId, u.id)),
+          db.update(guardians).set({ fullName: patch.fullName, updatedAt: nowIso() }).where(eq(guardians.userId, u.id)),
+        ]
+      : []),
     auditInsert(db, auditMetaFrom(c), { action: 'user.update_self', entityType: 'user', entityId: u.id, after: input }),
   ]);
   return c.json({ ok: true });
