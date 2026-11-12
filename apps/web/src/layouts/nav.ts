@@ -1,46 +1,40 @@
-import {
-  BookOpen,
-  CalendarClock,
-  ClipboardCheck,
-  GraduationCap,
-  KeyRound,
-  LayoutDashboard,
-  Settings,
-  Star,
-  UserSquare2,
-  Users,
-  Wallet,
-  BarChart3,
-  type LucideIcon,
-} from 'lucide-react';
+import { GraduationCap } from 'lucide-react';
+import accounts from '@/assets/menu/accounts.svg';
+import attendance from '@/assets/menu/attendance.svg';
+import classes from '@/assets/menu/classes.svg';
+import dashboard from '@/assets/menu/dashboard.svg';
+import fees from '@/assets/menu/fees.svg';
+import grades from '@/assets/menu/grades.svg';
+import reports from '@/assets/menu/reports.svg';
+import schedule from '@/assets/menu/schedule.svg';
+import settings from '@/assets/menu/settings.svg';
+import students from '@/assets/menu/students.svg';
+import teachers from '@/assets/menu/teachers.svg';
 import type { PermissionCode } from '@ecm/shared';
 
 export interface NavItem {
   to: string;
   label: string;
-  icon: LucideIcon;
+  /** English Maison 3D menu icon (design/english-maison-3d/icons/svg). */
+  icon: string;
   permission: PermissionCode;
   /** Chỉ hiển thị module đã hoàn thiện — không có mục menu "đang phát triển". */
   ready: boolean;
-  /** Màu nhận diện riêng của từng mục (ô biểu tượng + trạng thái đang chọn). */
-  tone: { icon: string; active: string };
 }
-
-const tone = (icon: string, active: string) => ({ icon, active });
 
 /** Thứ tự theo tài liệu thiết kế (mục V). Bật `ready` khi module tương ứng hoàn thành và qua kiểm thử. */
 export const NAV_ITEMS: NavItem[] = [
-  { to: '/tong-quan', label: 'Tổng quan', icon: LayoutDashboard, permission: 'dashboard.read', ready: false, tone: tone('bg-blue-100 text-blue-600', 'bg-blue-50 text-blue-700 ring-blue-200') },
-  { to: '/hoc-sinh', label: 'Học sinh', icon: Users, permission: 'students.read', ready: true, tone: tone('bg-indigo-100 text-indigo-600', 'bg-indigo-50 text-indigo-700 ring-indigo-200') },
-  { to: '/lop-hoc', label: 'Lớp học', icon: BookOpen, permission: 'classes.read', ready: true, tone: tone('bg-violet-100 text-violet-600', 'bg-violet-50 text-violet-700 ring-violet-200') },
-  { to: '/ca-hoc', label: 'Ca học', icon: CalendarClock, permission: 'classes.read', ready: true, tone: tone('bg-amber-100 text-amber-600', 'bg-amber-50 text-amber-800 ring-amber-200') },
-  { to: '/diem-danh', label: 'Điểm danh', icon: ClipboardCheck, permission: 'attendance.read', ready: true, tone: tone('bg-emerald-100 text-emerald-600', 'bg-emerald-50 text-emerald-700 ring-emerald-200') },
-  { to: '/diem-so', label: 'Điểm số', icon: Star, permission: 'grades.read', ready: true, tone: tone('bg-pink-100 text-pink-600', 'bg-pink-50 text-pink-700 ring-pink-200') },
-  { to: '/hoc-phi', label: 'Học phí', icon: Wallet, permission: 'fees.read', ready: true, tone: tone('bg-teal-100 text-teal-600', 'bg-teal-50 text-teal-700 ring-teal-200') },
-  { to: '/giao-vien', label: 'Giáo viên', icon: UserSquare2, permission: 'teachers.write', ready: true, tone: tone('bg-orange-100 text-orange-600', 'bg-orange-50 text-orange-700 ring-orange-200') },
-  { to: '/quan-ly-tai-khoan', label: 'Tài khoản', icon: KeyRound, permission: 'users.manage', ready: true, tone: tone('bg-rose-100 text-rose-600', 'bg-rose-50 text-rose-700 ring-rose-200') },
-  { to: '/bao-cao', label: 'Báo cáo', icon: BarChart3, permission: 'reports.read', ready: false, tone: tone('bg-cyan-100 text-cyan-600', 'bg-cyan-50 text-cyan-700 ring-cyan-200') },
-  { to: '/cai-dat', label: 'Cài đặt', icon: Settings, permission: 'settings.manage', ready: true, tone: tone('bg-slate-200 text-slate-600', 'bg-slate-100 text-slate-800 ring-slate-300') },
+  { to: '/tong-quan', label: 'Tổng quan', icon: dashboard, permission: 'dashboard.read', ready: false },
+  { to: '/hoc-sinh', label: 'Học sinh', icon: students, permission: 'students.read', ready: true },
+  { to: '/lop-hoc', label: 'Lớp học', icon: classes, permission: 'classes.read', ready: true },
+  { to: '/ca-hoc', label: 'Ca học', icon: schedule, permission: 'classes.read', ready: true },
+  { to: '/diem-danh', label: 'Điểm danh', icon: attendance, permission: 'attendance.read', ready: true },
+  { to: '/diem-so', label: 'Điểm số', icon: grades, permission: 'grades.read', ready: true },
+  { to: '/hoc-phi', label: 'Học phí', icon: fees, permission: 'fees.read', ready: true },
+  { to: '/giao-vien', label: 'Giáo viên', icon: teachers, permission: 'teachers.write', ready: true },
+  { to: '/quan-ly-tai-khoan', label: 'Tài khoản', icon: accounts, permission: 'users.manage', ready: true },
+  { to: '/bao-cao', label: 'Báo cáo', icon: reports, permission: 'reports.read', ready: false },
+  { to: '/cai-dat', label: 'Cài đặt', icon: settings, permission: 'settings.manage', ready: true },
 ];
 
 export const APP_ICON = GraduationCap;

@@ -8,21 +8,22 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground shadow-xs hover:bg-primary/90',
-        destructive: 'bg-destructive text-white shadow-xs hover:bg-destructive/90',
-        success: 'bg-success text-white shadow-xs hover:bg-success/90',
-        outline: 'border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground',
+        default: 'btn-3d',
+        destructive: 'btn-3d btn-3d--danger',
+        success: 'btn-3d btn-3d--success',
+        outline: 'btn-3d btn-3d--secondary',
         secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
         ghost: 'hover:bg-accent hover:text-accent-foreground',
         link: 'text-primary underline-offset-4 hover:underline',
       },
       size: {
         default: 'h-9 px-4 py-2',
-        sm: 'h-8 rounded-md px-3',
-        lg: 'h-11 rounded-md px-6 text-base',
+        sm: 'h-8 px-3',
+        lg: 'h-11 px-6 text-base',
         icon: 'size-9',
       },
     },
+    compoundVariants: [{ variant: ['default', 'destructive', 'success', 'outline'], size: ['sm', 'icon'], className: 'btn-3d--sm' }],
     defaultVariants: { variant: 'default', size: 'default' },
   },
 );

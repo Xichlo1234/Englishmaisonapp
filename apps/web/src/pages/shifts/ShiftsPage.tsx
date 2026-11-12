@@ -73,7 +73,7 @@ function lessonTone(l: CalendarLesson) {
   if (l.status === 'CANCELLED') return 'border-slate-200 bg-slate-50 text-slate-400 line-through';
   if (l.attendanceStatus === 'SUBMITTED' || l.attendanceStatus === 'LOCKED') return 'border-green-200 bg-success-soft/60';
   if (l.lessonDate < vnDate() && l.attendanceStatus !== 'SUBMITTED') return 'border-yellow-300 bg-warning-soft/70';
-  return 'border-blue-200 bg-accent';
+  return 'border-teal-200 bg-accent';
 }
 
 function LessonChip({ l, compact }: { l: CalendarLesson; compact?: boolean }) {
@@ -202,7 +202,7 @@ function CalendarView() {
       )}
       <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
-          <span className="size-3 rounded border border-blue-200 bg-accent" /> Sắp diễn ra
+          <span className="size-3 rounded border border-teal-200 bg-accent" /> Sắp diễn ra
         </span>
         <span className="flex items-center gap-1">
           <span className="size-3 rounded border border-green-200 bg-success-soft" /> Đã điểm danh

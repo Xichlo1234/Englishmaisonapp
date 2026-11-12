@@ -22,6 +22,7 @@ apps/mobile/        — Flutter scaffold (chưa có màn hình, chỉ placeholde
 ## Quy ước code
 - Không có cấu hình prettier: KHÔNG chạy prettier trên cả file (sẽ định dạng lại toàn bộ). Giữ kiểu sẵn có: ngoặc đơn, dòng dài ~160.
 - Ngôn ngữ UI: tiếng Việt. Code/comments: tiếng Anh.
+- Giao diện theo bộ thiết kế English Maison 3D (nhánh `design/english-maison-3d-buttons`): màu chủ đạo #167C75 (index.css), nút 3D qua lớp `.btn-3d` trong index.css gắn vào biến thể `default/destructive/success/outline` của `<Button>` (ghost/link/secondary giữ phẳng); biểu tượng menu 3D ở `src/assets/menu/*.svg` (dùng qua `<img>`, không nhúng inline vì các SVG trùng id gradient).
 - Ngày hiển thị: dd/mm/yyyy (`formatDateVN` trong shared/datetime, `formatDateTimeVN` trong apps/web/src/lib/format.ts).
 - Tiền VNĐ: `formatVnd`, `computeDiscount`, `deriveInvoiceStatus` trong shared/money.
 - Auth: PBKDF2 30000 iterations, JWT 15m access + rotating refresh. Web: HttpOnly cookies + CSRF. Mobile: Bearer token.

@@ -43,7 +43,7 @@ export function LoginPage() {
   const Icon = APP_ICON;
   return (
     <div className="grid min-h-screen lg:grid-cols-[1.1fr_1fr]">
-      <section className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-blue-600 via-blue-600 to-indigo-700 p-10 text-white lg:flex">
+      <section className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-[#238980] via-[#167c75] to-[#0f514d] p-10 text-white lg:flex">
         <div aria-hidden className="absolute inset-0 bg-[url(/images/pattern.svg)] bg-[length:240px] opacity-10 invert" />
         <div className="relative flex items-center gap-3">
           <span className="grid size-10 place-items-center rounded-xl bg-white/15 ring-1 ring-white/30">
@@ -54,7 +54,7 @@ export function LoginPage() {
         <img src="/images/login-hero.svg" alt="Minh họa lớp học tiếng Anh" className="relative mx-auto w-full max-w-lg drop-shadow-xl" />
         <div className="relative">
           <p className="text-2xl font-semibold leading-snug">Điểm danh, chấm điểm, học phí — tất cả ở một nơi.</p>
-          <p className="mt-2 text-blue-100">Dữ liệu đồng bộ giữa máy tính và điện thoại.</p>
+          <p className="mt-2 text-teal-50">Dữ liệu đồng bộ giữa máy tính và điện thoại.</p>
         </div>
       </section>
       <div className="relative grid place-items-center bg-muted px-4 py-10">

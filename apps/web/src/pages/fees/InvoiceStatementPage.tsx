@@ -79,9 +79,9 @@ export function StatementSheet({ s }: { s: InvoiceStatement }) {
   );
   return (
     <div className="w-[760px] bg-white p-8 text-[14px] leading-snug text-slate-900" style={{ fontFamily: 'Inter, "Segoe UI", Arial, sans-serif' }}>
-      <div className="flex items-start justify-between border-b-2 border-blue-600 pb-4">
+      <div className="flex items-start justify-between border-b-2 border-primary pb-4">
         <div>
-          <div className="text-xl font-bold text-blue-700">{s.center.name}</div>
+          <div className="text-xl font-bold text-primary">{s.center.name}</div>
           {s.center.address && <div className="text-slate-600">{s.center.address}</div>}
           {s.center.phone && <div className="text-slate-600">ĐT: {s.center.phone}</div>}
         </div>
@@ -130,10 +130,10 @@ export function StatementSheet({ s }: { s: InvoiceStatement }) {
             <>
               {row('Phải nộp', formatVnd(inv.amountDue), 'border-t border-slate-300 font-bold text-[15px]')}
               {row('Đã nộp', formatVnd(inv.amountPaid))}
-              {row('Còn phải nộp', formatVnd(inv.remaining), 'font-bold text-blue-700 text-[16px]')}
+              {row('Còn phải nộp', formatVnd(inv.remaining), 'font-bold text-primary text-[16px]')}
             </>
           ) : (
-            row('Phải nộp', formatVnd(inv.amountDue), 'border-t border-slate-300 font-bold text-blue-700 text-[16px]')
+            row('Phải nộp', formatVnd(inv.amountDue), 'border-t border-slate-300 font-bold text-primary text-[16px]')
           )}
         </tbody>
       </table>

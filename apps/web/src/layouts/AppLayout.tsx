@@ -29,13 +29,11 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
           className={({ isActive }) =>
             cn(
               'group flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-white hover:shadow-xs',
-              isActive && cn('shadow-xs ring-1', item.tone.active),
+              isActive && 'bg-white text-[#0f514d] shadow-xs ring-1 ring-[#cfe3dc]',
             )
           }
         >
-          <span className={cn('grid size-8 shrink-0 place-items-center rounded-lg transition-transform group-hover:scale-105', item.tone.icon)}>
-            <item.icon className="size-4.5" />
-          </span>
+          <img src={item.icon} alt="" className="size-9 shrink-0 transition-transform group-hover:-translate-y-0.5" />
           {item.label}
         </NavLink>
       ))}

@@ -12,15 +12,15 @@
   --card-foreground: #0f172a;
   --popover: #ffffff;
   --popover-foreground: #0f172a;
-  --primary: #2563eb;
+  --primary: #167c75;
   --primary-foreground: #ffffff;
   --secondary: #f1f5f9;
   --secondary-foreground: #0f172a;
   --muted: #f8fafc;
   --muted-foreground: #64748b;
-  --accent: #eff6ff;
-  --accent-foreground: #1e40af;
-  --destructive: #dc2626;
+  --accent: #e8f3ef;
+  --accent-foreground: #0f514d;
+  --destructive: #b95145;
   --destructive-foreground: #ffffff;
   --success: #16a34a;
   --success-soft: #dcfce7;
@@ -29,7 +29,7 @@
   --danger-soft: #fee2e2;
   --border: #e2e8f0;
   --input: #cbd5e1;
-  --ring: #3b82f6;
+  --ring: #167c75;
   --sidebar: #f8fafc;
 }
 
@@ -89,4 +89,50 @@
   main {
     padding: 0 !important;
   }
+}
+
+/* English Maison 3D buttons (design/english-maison-3d/buttons-3d.css), applied through <Button> variants. */
+.btn-3d {
+  --em-top: #238980;
+  --em-face: #167c75;
+  --em-edge: #0f514d;
+  --em-text: #fffaf1;
+  --em-depth: 4px;
+  border: 1px solid color-mix(in srgb, var(--em-face), white 12%);
+  border-radius: 12px;
+  background: linear-gradient(var(--em-top), var(--em-face));
+  color: var(--em-text);
+  font-weight: 700;
+  box-shadow: inset 0 1px #ffffff38, 0 var(--em-depth) 0 var(--em-edge), 0 calc(var(--em-depth) + 3px) 10px #265f5018;
+  transition: transform 160ms, box-shadow 160ms, filter 160ms;
+}
+.btn-3d--secondary { --em-top: #fffefa; --em-face: #f3f3e9; --em-edge: #d2dac9; --em-text: #49645c; border-color: #dfe5d7; }
+.btn-3d--danger { --em-top: #ca6b5d; --em-face: #b95145; --em-edge: #853b34; }
+.btn-3d--success { --em-top: #43825b; --em-face: #386d4b; --em-edge: #254d34; }
+.btn-3d--sm { --em-depth: 3px; border-radius: 10px; }
+.btn-3d:not(:disabled):not([aria-disabled='true']):hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow: inset 0 1px #ffffff38, 0 calc(var(--em-depth) + 1px) 0 var(--em-edge), 0 calc(var(--em-depth) + 5px) 14px #265f5020;
+}
+.btn-3d:not(:disabled):not([aria-disabled='true']):active {
+  transform: translateY(calc(var(--em-depth) - 1px));
+  filter: none;
+  box-shadow: inset 0 1px #ffffff22, 0 1px 0 var(--em-edge);
+}
+.btn-3d:disabled,
+.btn-3d[aria-disabled='true'] {
+  --em-top: #b4c0b8;
+  --em-face: #b4c0b8;
+  --em-edge: #96a79c;
+  --em-text: #fffefa;
+  border-color: #b4c0b8;
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-3d { transition: none; }
+  .btn-3d:not(:disabled):not([aria-disabled='true']):hover { transform: none; }
+}
+@media print {
+  .btn-3d { box-shadow: none; }
 }

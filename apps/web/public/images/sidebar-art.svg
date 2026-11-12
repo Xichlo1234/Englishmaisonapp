@@ -1,15 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 150" role="img" aria-label="Minh họa học sinh học tiếng Anh">
-  <path d="M0 150 V95 q55 -30 110 -6 t110 -10 V150z" fill="#dbeafe"/>
-  <path d="M0 150 V115 q60 -22 120 0 t100 -6 V150z" fill="#bfdbfe"/>
+  <path d="M0 150 V95 q55 -30 110 -6 t110 -10 V150z" fill="#dcede7"/>
+  <path d="M0 150 V115 q60 -22 120 0 t100 -6 V150z" fill="#bfe0d7"/>
   <g transform="translate(26 40)">
-    <rect width="88" height="54" rx="14" fill="#ffffff" stroke="#93c5fd" stroke-width="2"/>
-    <path d="M20 54 l-4 14 l18 -14z" fill="#ffffff" stroke="#93c5fd" stroke-width="2" stroke-linejoin="round"/>
-    <text x="44" y="34" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#2563eb">Let's go!</text>
+    <rect width="88" height="54" rx="14" fill="#ffffff" stroke="#8cc5b9" stroke-width="2"/>
+    <path d="M20 54 l-4 14 l18 -14z" fill="#ffffff" stroke="#8cc5b9" stroke-width="2" stroke-linejoin="round"/>
+    <text x="44" y="34" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#167c75">Let's go!</text>
   </g>
   <g transform="translate(138 52)">
-    <rect x="0" y="22" width="56" height="44" rx="6" fill="#2563eb"/>
-    <rect x="6" y="28" width="44" height="32" rx="3" fill="#eff6ff"/>
-    <path d="M28 28 v32" stroke="#93c5fd" stroke-width="2"/>
+    <rect x="0" y="22" width="56" height="44" rx="6" fill="#167c75"/>
+    <rect x="6" y="28" width="44" height="32" rx="3" fill="#eef6f2"/>
+    <path d="M28 28 v32" stroke="#8cc5b9" stroke-width="2"/>
     <path d="M10 0 l18 10 l18 -10" fill="none" stroke="#f59e0b" stroke-width="3" stroke-linecap="round"/>
     <circle cx="28" cy="12" r="5" fill="#f59e0b"/>
   </g>

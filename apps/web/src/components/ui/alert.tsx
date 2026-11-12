@@ -9,7 +9,7 @@ const alertVariants = cva('relative flex w-full gap-3 rounded-lg border px-4 py-
       warning: 'border-yellow-300 bg-warning-soft text-yellow-900',
       destructive: 'border-red-200 bg-danger-soft text-red-800',
       success: 'border-green-200 bg-success-soft text-green-900',
-      info: 'border-blue-200 bg-accent text-accent-foreground',
+      info: 'border-teal-200 bg-accent text-accent-foreground',
     },
   },
   defaultVariants: { variant: 'default' },
