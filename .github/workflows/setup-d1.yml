@@ -1,0 +1,70 @@
+# Thiết lập D1 trên Cloudflare: tạo bảng (migrations) + (tùy chọn) tạo tài khoản quản trị đầu tiên.
+# Chạy thủ công: GitHub → Actions → "Thiết lập D1" → Run workflow.
+# Cần GitHub Secrets: CLOUDFLARE_API_TOKEN (quyền D1 Edit), CLOUDFLARE_ACCOUNT_ID.
+name: Thiết lập D1
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Môi trường'
+        type: choice
+        options: [staging, production]
+        default: staging
+      admin_email:
+        description: 'Email quản trị viên cần tạo (để trống nếu chỉ tạo bảng)'
+        required: false
+        default: ''
+      admin_name:
+        description: 'Họ tên quản trị viên'
+        required: false
+        default: 'Quản trị viên'
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Kiểm tra secrets
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Thiếu secret CLOUDFLARE_API_TOKEN hoặc CLOUDFLARE_ACCOUNT_ID (Settings → Secrets and variables → Actions)"
+            exit 1
+          fi
+
+      - name: Tạo bảng database (migrations)
+        working-directory: workers
+        run: npx wrangler d1 migrations apply DB --remote --env ${{ inputs.environment }}
+
+      - name: Kiểm tra bảng vai trò
+        working-directory: workers
+        run: npx wrangler d1 execute DB --remote --env ${{ inputs.environment }} --command "SELECT code, name FROM roles"
+
+      - name: Tạo tài khoản quản trị
+        if: ${{ inputs.admin_email != '' }}
+        env:
+          ADMIN_EMAIL: ${{ inputs.admin_email }}
+          ADMIN_NAME: ${{ inputs.admin_name }}
+        run: |
+          OUT=$(node scripts/admin-account.mjs create --email "$ADMIN_EMAIL" --name "$ADMIN_NAME" --remote --env ${{ inputs.environment }} 2>&1) || { echo "$OUT"; exit 1; }
+          PW=$(echo "$OUT" | grep "Mật khẩu tạm" | awk '{print $NF}')
+          # Chỉ hiện mật khẩu tạm trong trang tóm tắt của lần chạy (không in vào log)
+          {
+            echo "### Tài khoản quản trị đã tạo"
+            echo ""
+            echo "- Email: \`$ADMIN_EMAIL\`"
+            echo "- Mật khẩu tạm: \`$PW\`"
+            echo ""
+            echo "Đăng nhập và đổi mật khẩu ngay. Sau đó xóa lần chạy này (… → Delete workflow run)."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Đã tạo tài khoản quản trị — xem mật khẩu tạm ở mục Summary của lần chạy."
