@@ -7,10 +7,10 @@ Hệ thống quản lý lớp học (~200 học sinh). Monorepo pnpm, Cloudflare
 ```
 packages/shared/    — Zod schemas, constants, utils (grading, attendance, money, datetime)
 workers/            — Hono API + Drizzle ORM + D1, phục vụ cả web assets
-  src/routes/       — auth, students, classes, attendance, grades, fees, users, files, me, settings
+  src/routes/       — auth, students, classes, attendance, grades, fees, users, classroom, files, me, settings
   src/services/     — business logic
   src/db/schema.ts  — Drizzle schema
-  migrations/       — D1 migrations (0000 tables, 0001 seed roles)
+  migrations/       — D1 migrations (0000 tables, 0001 seed, 0002 absence deduction, 0003 class posts/homework)
   test/             — Vitest integration tests (~80 passing)
 apps/web/           — React 19, Vite 7, Tailwind 4, TanStack Query, RHF+zod
   src/pages/        — auth, students, classes, teachers, shifts, attendance, grades, fees, users
@@ -20,6 +20,7 @@ apps/mobile/        — Flutter scaffold (chưa có màn hình, chỉ placeholde
 ```
 
 ## Quy ước code
+- Không có cấu hình prettier: KHÔNG chạy prettier trên cả file (sẽ định dạng lại toàn bộ). Giữ kiểu sẵn có: ngoặc đơn, dòng dài ~160.
 - Ngôn ngữ UI: tiếng Việt. Code/comments: tiếng Anh.
 - Ngày hiển thị: dd/mm/yyyy (`formatDateVN` trong shared/datetime, `formatDateTimeVN` trong apps/web/src/lib/format.ts).
 - Tiền VNĐ: `formatVnd`, `computeDiscount`, `deriveInvoiceStatus` trong shared/money.
@@ -58,6 +59,8 @@ pnpm db:migrate:local # Áp dụng migrations local
 - [x] Khấu trừ buổi vắng: mọi buổi vắng (có phép + không phép) của kỳ trước trừ vào hóa đơn kỳ sau = học phí ròng kỳ trước × số buổi vắng ÷ số buổi đã diễn ra (bỏ buổi hủy). Lưu trong `invoices.absence_*`; phần trừ nằm TRONG `discount_amount` (ràng buộc CHECK amount_due = gross − discount). `absenceDeductionFor()` trong fees.service.ts; mỗi hóa đơn kỳ trước chỉ làm căn cứ một lần.
 - [x] Hóa đơn chi tiết `/hoc-phi/hoa-don/:id/chi-tiet`: tải ảnh PNG (html-to-image, tên file không dấu), in, gửi phụ huynh (tạo notification FEE_DUE, phụ huynh xem qua API `/invoices/:id/statement` — app mobile hiển thị sau).
 - [x] Cài đặt `/cai-dat` (ADMIN): tên/địa chỉ/SĐT trung tâm (`PATCH /settings/center`). Người dùng tự đổi họ tên ở `/tai-khoan` (đồng bộ sang hồ sơ giáo viên/phụ huynh).
+- [x] Nhật ký lớp & bài tập (tab trong trang lớp; classroom.service.ts): giáo viên của lớp/quản lý đăng ảnh buổi học (ảnh nén 1600px JPEG ở trình duyệt), giao bài kèm ảnh/PDF; phụ huynh nộp ảnh bài làm (API, màn hình ở app mobile), giáo viên chấm Đã làm/Chưa làm + nhận xét. Quyền xem: `classContentVisibleSql` — gia đình chỉ thấy nội dung đăng trong thời gian con học lớp đó. Cờ `students.photo_consent` (Không đăng ảnh) cảnh báo khi đăng. Thông báo loại SYSTEM, `data.kind` = CLASS_POST | HOMEWORK | HOMEWORK_REVIEW.
+- [x] Ảnh đại diện phụ huynh: tự tải qua `POST /me/avatar` (app mobile); hiện cỡ lớn ở tab Phụ huynh của hồ sơ học sinh; giáo viên của con xem được.
 - [x] Quản lý tài khoản (`/quan-ly-tai-khoan`): tạo ADMIN/OWNER, khóa/mở, mở khóa đăng nhập, đổi vai trò, đăng xuất mọi thiết bị, cấp mật khẩu tạm; cấp tài khoản phụ huynh (đăng nhập bằng SĐT) ở trang học sinh
 - [x] CI/CD: push main → test → deploy staging tự động
 

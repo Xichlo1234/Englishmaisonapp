@@ -18,6 +18,7 @@ import {
   teacherRoutes,
 } from './routes/classes.routes';
 import { userRoutes } from './routes/users.routes';
+import { avatarRoutes, classFeedRoutes, classPostRoutes, homeworkRoutes, studentClassroomRoutes } from './routes/classroom.routes';
 import { attendanceRoutes, lessonAttendanceRoutes } from './routes/attendance.routes';
 import { assessmentRoutes, gradingRoutes, studentResultRoutes } from './routes/grades.routes';
 import { adjustmentRoutes, feePlanRoutes, invoiceRoutes, paymentRoutes, studentFeePlanRoutes, studentFeeRoutes } from './routes/fees.routes';
@@ -30,8 +31,11 @@ export function createApp() {
 
   api.get('/health', (c) => c.json({ status: 'ok', time: new Date().toISOString() }));
   api.route('/auth', authRoutes);
+  api.route('/me', avatarRoutes);
   api.route('/me', meRoutes);
   api.route('/settings', settingsRoutes);
+  // Mounted before the generic routers so their permission middleware does not block family accounts.
+  api.route('/students', studentClassroomRoutes);
   api.route('/students', studentResultRoutes);
   api.route('/students', studentFeeRoutes);
   api.route('/students', studentRoutes);
@@ -41,7 +45,10 @@ export function createApp() {
   api.route('/rooms', roomRoutes);
   api.route('/calendar', calendarRoutes);
   api.route('/schedules', scheduleRoutes);
+  api.route('/classes', classFeedRoutes);
   api.route('/classes', classRoutes);
+  api.route('/class-posts', classPostRoutes);
+  api.route('/homework', homeworkRoutes);
   api.route('/enrollments', enrollmentRoutes);
   api.route('/lessons', lessonRoutes);
   api.route('/lessons', lessonAttendanceRoutes);

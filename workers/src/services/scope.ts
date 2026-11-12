@@ -40,3 +40,15 @@ export async function assertStudentAccess(db: DB, u: AuthUser, studentId: number
   );
   if (!rows.length) throw Errors.notFound('Học sinh');
 }
+
+/**
+ * Class posts / homework visibility. Staff: all. Teacher: classes they teach.
+ * Family: only items dated inside one of their child's enrolment periods in that class.
+ */
+export function classContentVisibleSql(u: AuthUser, classIdCol: SQL, dateCol: SQL): SQL {
+  if (hasFullScope(u)) return sql`1`;
+  if (u.role === 'TEACHER') return u.teacherId ? sql`${classIdCol} IN ${teacherClassIdsSql(u.teacherId)}` : sql`0`;
+  const scope = studentScopeSql(u, sql`ce.student_id`) ?? sql`1`;
+  return sql`EXISTS (SELECT 1 FROM class_enrollments ce WHERE ce.class_id = ${classIdCol} AND ce.start_date <= ${dateCol}
+                       AND coalesce(ce.end_date, '9999-12-31') >= ${dateCol} AND ${scope})`;
+}

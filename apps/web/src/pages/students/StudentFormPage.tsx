@@ -59,6 +59,7 @@ const formSchema = z
     startDate: isoDate,
     englishLevel: z.string().max(50),
     needsAttention: z.boolean(),
+    photoConsent: z.boolean(),
     attentionNote: z.string().max(500),
     notes: z.string().max(2000),
     guardians: z.array(guardianFormSchema),
@@ -101,6 +102,7 @@ function toProfilePayload(v: FormValues) {
     startDate: v.startDate,
     englishLevel: nullIfEmpty(v.englishLevel),
     needsAttention: v.needsAttention,
+    photoConsent: v.photoConsent,
     attentionNote: nullIfEmpty(v.attentionNote),
     notes: nullIfEmpty(v.notes),
   };
@@ -117,6 +119,7 @@ function defaultsFrom(s?: StudentDetail): FormValues {
     startDate: s?.startDate ?? vnDate(),
     englishLevel: s?.englishLevel ?? '',
     needsAttention: s?.needsAttention ?? false,
+    photoConsent: s?.photoConsent ?? true,
     attentionNote: s?.attentionNote ?? '',
     notes: s?.notes ?? '',
     guardians: s ? [] : [emptyGuardian(true)],
@@ -311,6 +314,16 @@ function StudentForm({ student }: { student?: StudentDetail }) {
               />
               <label htmlFor="attention" className="text-sm">
                 Học sinh cần theo dõi đặc biệt
+              </label>
+            </div>
+            <div className="flex items-center gap-2 sm:col-span-2">
+              <Checkbox
+                id="noPhoto"
+                checked={!form.watch('photoConsent')}
+                onCheckedChange={(c) => form.setValue('photoConsent', c !== true, { shouldDirty: true })}
+              />
+              <label htmlFor="noPhoto" className="text-sm">
+                Không đăng ảnh của học sinh này lên nhật ký lớp (gia đình không đồng ý)
               </label>
             </div>
             {form.watch('needsAttention') && (

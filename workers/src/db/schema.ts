@@ -181,6 +181,8 @@ export const students = sqliteTable(
     attentionNote: text('attention_note'),
     notes: text('notes'),
     photoFileId: integer('photo_file_id').references(() => files.id),
+    // false = family declined photos; teachers are warned before posting class photos.
+    photoConsent: bool('photo_consent').notNull().default(true),
     userId: integer('user_id')
       .unique()
       .references(() => users.id),
@@ -785,6 +787,78 @@ export const auditLogs = sqliteTable(
     index('audit_entity_idx').on(t.entityType, t.entityId),
     index('audit_actor_idx').on(t.actorUserId, t.createdAt),
     index('audit_created_idx').on(t.createdAt),
+  ],
+);
+
+// ───────────────────────── Nhật ký lớp & bài tập ─────────────────────────
+// Ảnh/tệp đính kèm nằm ở bảng files: owner_type = 'class_post' | 'homework' | 'homework_submission'.
+
+export const classPosts = sqliteTable(
+  'class_posts',
+  {
+    id: id(),
+    classId: integer('class_id')
+      .notNull()
+      .references(() => classes.id),
+    postDate: text('post_date').notNull(),
+    content: text('content').notNull(),
+    createdBy: integer('created_by')
+      .notNull()
+      .references(() => users.id),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+    deletedAt: deletedAt(),
+  },
+  (t) => [index('class_posts_class_idx').on(t.classId, t.postDate)],
+);
+
+export const homework = sqliteTable(
+  'homework',
+  {
+    id: id(),
+    classId: integer('class_id')
+      .notNull()
+      .references(() => classes.id),
+    title: text('title').notNull(),
+    description: text('description'),
+    assignedDate: text('assigned_date').notNull(),
+    dueDate: text('due_date').notNull(),
+    createdBy: integer('created_by')
+      .notNull()
+      .references(() => users.id),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+    deletedAt: deletedAt(),
+  },
+  (t) => [
+    index('homework_class_idx').on(t.classId, t.dueDate),
+    check('homework_dates_chk', sql`${t.dueDate} >= ${t.assignedDate}`),
+  ],
+);
+
+export const homeworkSubmissions = sqliteTable(
+  'homework_submissions',
+  {
+    id: id(),
+    homeworkId: integer('homework_id')
+      .notNull()
+      .references(() => homework.id),
+    studentId: integer('student_id')
+      .notNull()
+      .references(() => students.id),
+    note: text('note'),
+    submittedBy: integer('submitted_by').references(() => users.id),
+    submittedAt: text('submitted_at'),
+    result: text('result'),
+    teacherComment: text('teacher_comment'),
+    reviewedBy: integer('reviewed_by').references(() => users.id),
+    reviewedAt: text('reviewed_at'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex('homework_submissions_uq').on(t.homeworkId, t.studentId),
+    check('homework_submissions_result_chk', sql`${t.result} IS NULL OR ${inList(t.result, ['DONE', 'NOT_DONE'])}`),
   ],
 );
 

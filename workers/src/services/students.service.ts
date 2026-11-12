@@ -167,8 +167,10 @@ export async function getStudentDetail(db: DB, user: AuthUser, id: number) {
       is_primary: number;
       receive_notifications: number;
       has_account: number;
+      avatar_file_id: number | null;
     }>(sql`SELECT g.id, g.full_name, g.phone, g.email, sg.relationship, sg.is_primary, sg.receive_notifications,
-                  (g.user_id IS NOT NULL) AS has_account
+                  (g.user_id IS NOT NULL) AS has_account,
+                  (SELECT f.id FROM users u JOIN files f ON f.id = u.avatar_file_id AND f.deleted_at IS NULL WHERE u.id = g.user_id) AS avatar_file_id
              FROM student_guardians sg JOIN guardians g ON g.id = sg.guardian_id
             WHERE sg.student_id = ${id} ORDER BY sg.is_primary DESC, sg.created_at ASC`);
   const enrollmentRows = await db.all<{
@@ -202,6 +204,7 @@ export async function getStudentDetail(db: DB, user: AuthUser, id: number) {
       isPrimary: !!g.is_primary,
       receiveNotifications: !!g.receive_notifications,
       hasAccount: !!g.has_account,
+      avatarFileId: g.avatar_file_id,
     })),
     enrollments: enrollmentRows.map((e) => ({
       id: e.id,
@@ -285,6 +288,7 @@ export async function createStudent(db: DB, meta: AuditMeta, user: AuthUser, inp
       startDate: input.startDate,
       englishLevel: input.englishLevel,
       needsAttention: input.needsAttention ?? false,
+      photoConsent: input.photoConsent ?? true,
       attentionNote: input.attentionNote,
       notes: input.notes,
       status: 'ACTIVE',

@@ -22,6 +22,13 @@
       "when": 1794492754371,
       "tag": "0002_absence_deduction",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1794496473149,
+      "tag": "0003_class_posts_homework",
+      "breakpoints": true
     }
   ]
 }

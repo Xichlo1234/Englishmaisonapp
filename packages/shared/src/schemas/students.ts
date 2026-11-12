@@ -55,6 +55,7 @@ const profileFields = {
   needsAttention: z.boolean().optional(),
   attentionNote: optText(500),
   notes: optText(2000),
+  photoConsent: z.boolean().optional(),
 };
 
 export const studentCreateSchema = z
@@ -81,6 +82,7 @@ export const studentUpdateSchema = z
     needsAttention: z.boolean().optional(),
     attentionNote: profileFields.attentionNote,
     notes: profileFields.notes,
+    photoConsent: z.boolean().optional(),
     version: versionField,
   });
 export type StudentUpdateInput = z.infer<typeof studentUpdateSchema>;

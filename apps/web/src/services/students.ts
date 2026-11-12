@@ -31,6 +31,7 @@ export interface GuardianOfStudent {
   isPrimary: boolean;
   receiveNotifications: boolean;
   hasAccount: boolean;
+  avatarFileId: number | null;
 }
 
 export interface EnrollmentOfStudent {
@@ -61,6 +62,7 @@ export interface StudentDetail {
   statusBeforeArchive: string | null;
   pauseUntil: string | null;
   needsAttention: boolean;
+  photoConsent: boolean;
   attentionNote: string | null;
   notes: string | null;
   photoFileId: number | null;

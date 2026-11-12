@@ -1,3 +1,4 @@
+import { compressImage } from '@/lib/image';
 import { useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -269,16 +270,6 @@ function Info({ label, value, wide }: { label: string; value: string | null | un
   );
 }
 
-/** Nén ảnh ở trình duyệt về tối đa 1280px, JPEG — giảm dung lượng R2. */
-async function compressImage(file: File, max = 1280): Promise<Blob> {
-  const bmp = await createImageBitmap(file);
-  const scale = Math.min(1, max / Math.max(bmp.width, bmp.height));
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.round(bmp.width * scale);
-  canvas.height = Math.round(bmp.height * scale);
-  canvas.getContext('2d')!.drawImage(bmp, 0, 0, canvas.width, canvas.height);
-  return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Không xử lý được ảnh'))), 'image/jpeg', 0.85));
-}
 
 function StudentPhoto({ s }: { s: StudentDetail }) {
   const qc = useQueryClient();

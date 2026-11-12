@@ -13,8 +13,29 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { errorMessage } from '@/components/common/page';
 import { studentKeys, studentsApi, type StudentDetail } from '@/services/students';
 import { usersApi } from '@/services/users';
+import { fileUrl } from '@/lib/image';
 import { CredentialDialog } from '../teachers/TeachersPage';
 import { emptyGuardian, GuardianFields, guardianFormSchema, toGuardianPayload } from './StudentFormPage';
+
+/** Ảnh lớn để giáo viên nhận ra phụ huynh khi đưa đón; phụ huynh tự cập nhật trên ứng dụng. */
+function GuardianAvatar({ name, fileId }: { name: string; fileId: number | null }) {
+  const initials = name
+    .split(' ')
+    .slice(-2)
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase();
+  return fileId ? (
+    <a href={fileUrl(fileId)} target="_blank" rel="noreferrer" className="shrink-0">
+      <img src={fileUrl(fileId)} alt={`Ảnh phụ huynh ${name}`} className="size-28 rounded-xl object-cover ring-1 ring-border" />
+    </a>
+  ) : (
+    <div className="flex size-28 shrink-0 flex-col items-center justify-center rounded-xl bg-muted text-center text-muted-foreground" title="Phụ huynh chưa tải ảnh trên ứng dụng">
+      <span className="text-2xl font-semibold">{initials}</span>
+      <span className="px-1 text-[10px] leading-tight">Chưa có ảnh</span>
+    </div>
+  );
+}
 
 export function GuardiansPanel({ student }: { student: StudentDetail }) {
   const qc = useQueryClient();
@@ -57,7 +78,9 @@ export function GuardiansPanel({ student }: { student: StudentDetail }) {
     <div className="flex flex-col gap-3">
       {student.guardians.map((g) => (
         <div key={g.id} className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
+          <div className="flex items-center gap-4">
+            <GuardianAvatar name={g.fullName} fileId={g.avatarFileId} />
+            <div>
             <div className="flex items-center gap-2 font-medium">
               {g.fullName}
               <Badge variant="muted">{RELATIONSHIP_LABELS[g.relationship]}</Badge>
@@ -74,6 +97,7 @@ export function GuardiansPanel({ student }: { student: StudentDetail }) {
               </a>
               {g.email && <span>{g.email}</span>}
               {g.hasAccount && <span className="text-success">Đã có tài khoản</span>}
+            </div>
             </div>
           </div>
           {student.canEdit && (

@@ -28,6 +28,7 @@ import {
   type LessonRow,
 } from '@/services/classes';
 import { studentKeys } from '@/services/students';
+import { ClassFeedTab, HomeworkTab } from './ClassroomTabs';
 import { DateReasonDialog, EnrollStudentsSheet, TransferSheet } from './dialogs';
 import { emptyScheduleRow, ScheduleRowsEditor, toScheduleInput, type ScheduleRow } from './ScheduleRowsEditor';
 
@@ -136,6 +137,8 @@ function ClassView({ c }: { c: ClassDetail }) {
           <TabsTrigger value="schedule">Lịch học</TabsTrigger>
           <TabsTrigger value="lessons">Buổi học</TabsTrigger>
           <TabsTrigger value="history">Lịch sử sĩ số</TabsTrigger>
+          <TabsTrigger value="feed">Nhật ký lớp</TabsTrigger>
+          <TabsTrigger value="homework">Bài tập</TabsTrigger>
         </TabsList>
         <TabsContent value="students">
           <StudentsTab c={c} />
@@ -148,6 +151,12 @@ function ClassView({ c }: { c: ClassDetail }) {
         </TabsContent>
         <TabsContent value="history">
           <HistoryTab classId={c.id} maxStudents={c.maxStudents} />
+        </TabsContent>
+        <TabsContent value="feed">
+          <ClassFeedTab classId={c.id} />
+        </TabsContent>
+        <TabsContent value="homework">
+          <HomeworkTab classId={c.id} />
         </TabsContent>
       </Tabs>
 
