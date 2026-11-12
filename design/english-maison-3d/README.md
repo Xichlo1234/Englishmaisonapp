@@ -1,4 +1,4 @@
-# English Maison — Bộ nút và biểu tượng 3D
+# English Maison — Bộ nút, biểu tượng 3D và ảnh nền
 
 Bộ tài nguyên thiết kế độc lập. Chưa tích hợp vào app; không thay đổi chức năng, dữ liệu, cấu hình Cloudflare hoặc dependency ứng dụng.
 
@@ -21,6 +21,8 @@ Tải thư mục này và mở **index.html** bằng Chrome/Edge, giữ nguyên 
 | `icons/menu-icons-sheet.png` | Bảng tổng hợp PNG 2400 × 2020 |
 | `buttons-3d.css` | CSS mẫu dùng lớp `em-btn`, có hover/nhấn/focus/vô hiệu hóa và giảm chuyển động |
 | `design-tokens.json` | Màu, font, bo góc, khoảng cách và chiều sâu |
+| `backgrounds/academy-hero.png` | Nền đăng nhập: ngôi trường, sách và minh họa 3D; PNG 1672 × 941 |
+| `backgrounds/app-canvas.png` | Nền app: màu kem và khối trang trí nhẹ ở góc; PNG 1672 × 941 |
 | `fonts/` | Noto Sans hỗ trợ tiếng Việt và giấy phép đi kèm |
 
 10 nút: Thêm học sinh, Lưu thay đổi, Xem báo cáo, Xuất Excel, In / Lưu PDF, Chỉnh sửa, Hủy, Xóa, Đăng nhập, Xác nhận.
@@ -50,3 +52,17 @@ Tải thư mục này và mở **index.html** bằng Chrome/Edge, giữ nguyên 
 Khi tích hợp thật, dùng CSS và biểu tượng SVG trong thành phần nút dùng chung để giữ chữ sắc nét, hỗ trợ trạng thái tải, vô hiệu hóa và bàn phím. PNG có nhãn phù hợp cho tài liệu/mẫu thiết kế. SVG có thể chỉnh sửa trong Figma, Illustrator hoặc Inkscape; đây là hình có hiệu ứng 3D, không phải mô hình Blender/GLB.
 
 Các nút trên trang xem trước chỉ minh họa hình thức, không thực hiện lưu/xóa hoặc gửi dữ liệu. Thuộc tính `aria-disabled` là mô tả truy cập; với nút HTML hãy dùng `disabled` để chặn thao tác thực tế. Chưa áp dụng stylesheet này vào app đang chạy.
+
+## Ảnh nền
+
+### Nền đăng nhập — Academy hero
+
+![Nền đăng nhập](backgrounds/academy-hero.png)
+
+Dùng cho trang đăng nhập hoặc banner chào mừng. Giữ chữ ở vùng trống bên trái; điều chỉnh vị trí ảnh theo kích thước màn hình để tránh che nội dung.
+
+### Nền ứng dụng — App canvas
+
+![Nền ứng dụng](backgrounds/app-canvas.png)
+
+Nền kem nhẹ, chi tiết trang trí ở góc, dùng phía sau các thẻ và bảng dữ liệu. Giữ nền thẻ đủ đặc để chữ luôn dễ đọc. Hai ảnh được tạo riêng bằng công cụ sinh ảnh, đã đưa vào kho tài nguyên thiết kế; chưa áp dụng lên app.
