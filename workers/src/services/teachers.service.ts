@@ -22,7 +22,7 @@ export function generateTempPassword(): string {
   return chars.join('');
 }
 
-async function assertIdentityFree(db: DB, email: string | null | undefined, phone: string | null | undefined, exceptUserId?: number) {
+export async function assertIdentityFree(db: DB, email: string | null | undefined, phone: string | null | undefined, exceptUserId?: number) {
   if (email) {
     const [u] = await db.select({ id: users.id }).from(users).where(eq(users.email, email));
     if (u && u.id !== exceptUserId) throw Errors.conflict('EMAIL_TAKEN', 'Email đã được dùng cho tài khoản khác');
@@ -141,27 +141,6 @@ export async function setTeacherActive(db: DB, meta: AuditMeta, id: number, acti
     ...(active ? [] : [revokeAllSessionsStmt(db, t.userId, 'ACCOUNT_DISABLED')]),
     auditInsert(db, meta, { action: active ? 'teacher.activate' : 'teacher.deactivate', entityType: 'teacher', entityId: id, reason }),
   ]);
-}
-
-/** Cấp mật khẩu tạm cho một tài khoản (không áp dụng cho quản trị viên khác — dùng script break-glass). */
-export async function resetUserPassword(db: DB, env: Bindings, meta: AuditMeta, userId: number) {
-  const [u] = await db.all<{ id: number; role: string }>(
-    sql`SELECT u.id, r.code AS role FROM users u JOIN roles r ON r.id = u.role_id WHERE u.id = ${userId} AND u.deleted_at IS NULL`,
-  );
-  if (!u) throw Errors.notFound('Tài khoản');
-  if (u.role === 'ADMIN' && u.id !== meta.actorUserId)
-    throw Errors.forbidden('Không thể đặt lại mật khẩu quản trị viên khác tại đây');
-  const tempPassword = generateTempPassword();
-  const hash = await hashPassword(tempPassword, Number(env.PBKDF2_ITERATIONS) || 30000);
-  await runBatch(db, [
-    db
-      .update(users)
-      .set({ passwordHash: hash, mustChangePassword: true, failedLoginCount: 0, lockedUntil: null, updatedAt: nowIso() })
-      .where(eq(users.id, userId)),
-    revokeAllSessionsStmt(db, userId, 'PASSWORD_RESET'),
-    auditInsert(db, meta, { action: 'user.reset_password', entityType: 'user', entityId: userId }),
-  ]);
-  return { tempPassword };
 }
 
 export async function assertActiveTeacher(db: DB, teacherId: number) {

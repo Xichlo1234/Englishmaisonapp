@@ -16,8 +16,8 @@ import {
   scheduleRoutes,
   shiftRoutes,
   teacherRoutes,
-  userRoutes,
 } from './routes/classes.routes';
+import { userRoutes } from './routes/users.routes';
 import { attendanceRoutes, lessonAttendanceRoutes } from './routes/attendance.routes';
 import { assessmentRoutes, gradingRoutes, studentResultRoutes } from './routes/grades.routes';
 import { adjustmentRoutes, feePlanRoutes, invoiceRoutes, paymentRoutes, studentFeePlanRoutes, studentFeeRoutes } from './routes/fees.routes';

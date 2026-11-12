@@ -7,13 +7,13 @@ Hệ thống quản lý lớp học (~200 học sinh). Monorepo pnpm, Cloudflare
 ```
 packages/shared/    — Zod schemas, constants, utils (grading, attendance, money, datetime)
 workers/            — Hono API + Drizzle ORM + D1, phục vụ cả web assets
-  src/routes/       — auth, students, classes, attendance, grades, fees, files, me, settings
+  src/routes/       — auth, students, classes, attendance, grades, fees, users, files, me, settings
   src/services/     — business logic
   src/db/schema.ts  — Drizzle schema
   migrations/       — D1 migrations (0000 tables, 0001 seed roles)
   test/             — Vitest integration tests (~80 passing)
 apps/web/           — React 19, Vite 7, Tailwind 4, TanStack Query, RHF+zod
-  src/pages/        — auth, students, classes, teachers, shifts, attendance, grades, fees
+  src/pages/        — auth, students, classes, teachers, shifts, attendance, grades, fees, users
   src/services/     — API client functions
   src/components/ui/ — hand-written shadcn-style components
 apps/mobile/        — Flutter scaffold (chưa có màn hình, chỉ placeholder)
@@ -27,6 +27,7 @@ apps/mobile/        — Flutter scaffold (chưa có màn hình, chỉ placeholde
 - D1 batch: dùng `runBatch()` / `rowsOf()` trong workers/src/lib/batch.ts (giao dịch nguyên tử, hỗ trợ raw SQL).
 - API response: `{ data }`; lỗi `{ error: { code, message, details } }` (ném `Errors.*` từ workers/src/lib/errors.ts).
 - Cron: "0 17 * * *" (00:00 VN), "0 1 * * *" (08:00 VN).
+- Quản lý tài khoản (users.service.ts): OWNER chỉ thao tác trên TEACHER/GUARDIAN/STUDENT; không ai tự khóa/tự đổi vai trò; không đặt lại mật khẩu ADMIN khác (dùng scripts/admin-account.mjs); khóa/mở giáo viên đi qua trang Giáo viên (kiểm tra lịch dạy).
 
 ## Scripts
 ```bash
@@ -54,10 +55,10 @@ pnpm db:migrate:local # Áp dụng migrations local
 - [x] Phase 1: Thiết kế + hạ tầng
 - [x] Phase 2: API backend (auth, students, classes, shifts, teachers, attendance, grades, fees)
 - [x] Phase 3 web: auth, students, classes, teachers, shifts, attendance, grades, fees (gói học phí, giảm giá, hóa đơn theo kỳ, thu tiền, phiếu thu, điều chỉnh có duyệt, sổ thu)
-- [ ] CI/CD auto-deploy: workflow có, đang lỗi vì token thiếu quyền Workers Scripts Edit
+- [x] Quản lý tài khoản (`/quan-ly-tai-khoan`): tạo ADMIN/OWNER, khóa/mở, mở khóa đăng nhập, đổi vai trò, đăng xuất mọi thiết bị, cấp mật khẩu tạm; cấp tài khoản phụ huynh (đăng nhập bằng SĐT) ở trang học sinh
+- [x] CI/CD: push main → test → deploy staging tự động
 
 ### Đang làm / Chưa xong
-- [ ] Users/accounts management web
 - [ ] Reports page (báo cáo)
 - [ ] Dashboard tổng quan
 - [ ] Phase 4: Mobile Flutter (đăng nhập, lịch, điểm danh, điểm, học phí)

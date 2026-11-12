@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
-import { BellOff, Loader2, Phone, Plus, Star, Trash2 } from 'lucide-react';
+import { BellOff, KeyRound, Loader2, Phone, Plus, Star, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { RELATIONSHIP_LABELS } from '@ecm/shared';
 import { Alert } from '@/components/ui/alert';
@@ -12,11 +12,14 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { errorMessage } from '@/components/common/page';
 import { studentKeys, studentsApi, type StudentDetail } from '@/services/students';
+import { usersApi } from '@/services/users';
+import { CredentialDialog } from '../teachers/TeachersPage';
 import { emptyGuardian, GuardianFields, guardianFormSchema, toGuardianPayload } from './StudentFormPage';
 
 export function GuardiansPanel({ student }: { student: StudentDetail }) {
   const qc = useQueryClient();
   const [adding, setAdding] = useState(false);
+  const [credential, setCredential] = useState<{ name: string; login: string; password: string } | null>(null);
   const refresh = () => qc.invalidateQueries({ queryKey: studentKeys.detail(student.id) });
 
   const setPrimary = useMutation({
@@ -37,6 +40,15 @@ export function GuardiansPanel({ student }: { student: StudentDetail }) {
     onSuccess: () => {
       refresh();
       toast.success('Đã bỏ liên kết phụ huynh');
+    },
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+
+  const grantAccount = useMutation({
+    mutationFn: (g: { id: number; fullName: string }) => usersApi.createGuardianAccount(g.id).then((r) => ({ g, ...r })),
+    onSuccess: ({ g, login, tempPassword }) => {
+      refresh();
+      setCredential({ name: g.fullName, login, password: tempPassword });
     },
     onError: (e) => toast.error(errorMessage(e)),
   });
@@ -66,6 +78,16 @@ export function GuardiansPanel({ student }: { student: StudentDetail }) {
           </div>
           {student.canEdit && (
             <div className="flex flex-wrap gap-2">
+              {!g.hasAccount && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={grantAccount.isPending}
+                  onClick={() => window.confirm(`Cấp tài khoản cho ${g.fullName}? Đăng nhập bằng số điện thoại ${g.phone}.`) && grantAccount.mutate(g)}
+                >
+                  <KeyRound /> Cấp tài khoản
+                </Button>
+              )}
               {!g.isPrimary && (
                 <Button variant="outline" size="sm" disabled={setPrimary.isPending} onClick={() => setPrimary.mutate(g.id)}>
                   <Star /> Đặt liên hệ chính
@@ -96,6 +118,7 @@ export function GuardiansPanel({ student }: { student: StudentDetail }) {
         </Button>
       )}
       <AddGuardianSheet student={student} open={adding} onOpenChange={setAdding} onDone={refresh} />
+      <CredentialDialog credential={credential} onClose={() => setCredential(null)} />
     </div>
   );
 }

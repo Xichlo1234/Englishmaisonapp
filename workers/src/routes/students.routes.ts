@@ -22,6 +22,7 @@ import { requireAuth, requireAnyPermission, requirePermission } from '../middlew
 import { auditMetaFrom } from '../services/audit.service';
 import { uploadStudentPhoto } from '../services/files.service';
 import * as svc from '../services/students.service';
+import { createGuardianAccount } from '../services/users.service';
 import { parseJson, parseParams, parseQuery, parseWith } from '../validators/validate';
 
 export const studentRoutes = new Hono<AppEnv>();
@@ -137,4 +138,8 @@ guardianRoutes.use('*', requireAuth, requirePermission('students.write'));
 guardianRoutes.get('/', async (c) => {
   const { phone } = parseWith(z.object({ phone: z.string().trim().min(3).max(20) }), c.req.query());
   return c.json({ data: await svc.findGuardiansByPhone(getDb(c.env.DB), phone) });
+});
+guardianRoutes.post('/:id/account', async (c) => {
+  const { id } = parseParams(c, idParam);
+  return c.json(await createGuardianAccount(getDb(c.env.DB), c.env, auditMetaFrom(c), id), 201);
 });

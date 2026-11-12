@@ -213,16 +213,3 @@ for (const [path, active] of [
   });
 }
 
-export const userRoutes = new Hono<AppEnv>();
-userRoutes.use('*', requireAuth);
-userRoutes.post('/:id/reset-password', requireAnyPermission('users.manage', 'teachers.write'), async (c) => {
-  const { id } = parseParams(c, idParam);
-  const me = c.get('user');
-  // Chủ lớp (không có users.manage) chỉ cấp lại mật khẩu cho giáo viên/phụ huynh/học sinh
-  if (!me.permissions.has('users.manage')) {
-    const db = getDb(c.env.DB);
-    const [u] = await db.all<{ role: string }>(sql`SELECT r.code AS role FROM users u JOIN roles r ON r.id = u.role_id WHERE u.id = ${id}`);
-    if (!u || ['ADMIN', 'OWNER'].includes(u.role)) throw Errors.forbidden();
-  }
-  return c.json(await tch.resetUserPassword(getDb(c.env.DB), c.env, auditMetaFrom(c), id));
-});

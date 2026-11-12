@@ -12,3 +12,4 @@ export * from './schemas/classes';
 export * from './schemas/attendance';
 export * from './schemas/grades';
 export * from './schemas/fees';
+export * from './schemas/users';

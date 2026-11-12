@@ -15,6 +15,7 @@ import { ClassDetailPage } from '@/pages/classes/ClassDetailPage';
 import { ClassFormPage } from '@/pages/classes/ClassFormPage';
 import { ClassesListPage } from '@/pages/classes/ClassesListPage';
 import { ShiftsPage } from '@/pages/shifts/ShiftsPage';
+import { UsersPage } from './pages/users/UsersPage';
 import { TeachersPage } from '@/pages/teachers/TeachersPage';
 import { AttendancePage } from '@/pages/attendance/AttendancePage';
 import { AttendanceSheetPage } from '@/pages/attendance/AttendanceSheetPage';
@@ -96,6 +97,7 @@ export const router = createBrowserRouter([
       { path: 'hoc-phi/phieu-thu/:id', element: <RequirePermission perm="fees.read"><ReceiptPage /></RequirePermission> },
       { path: 'ca-hoc', element: <RequirePermission perm="classes.read"><ShiftsPage /></RequirePermission> },
       { path: 'giao-vien', element: <RequirePermission perm="teachers.write"><TeachersPage /></RequirePermission> },
+      { path: 'quan-ly-tai-khoan', element: <RequirePermission perm="users.manage"><UsersPage /></RequirePermission> },
       { path: '*', element: <NotFound /> },
     ],
   },
