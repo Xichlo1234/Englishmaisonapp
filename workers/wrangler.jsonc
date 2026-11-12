@@ -21,7 +21,7 @@
       "binding": "DB",
       "database_name": "ecm-db",
       // Thay bằng database_id thật sau khi chạy: wrangler d1 create ecm-db
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "3657486c-8794-4558-9ace-da0380f16ac4",
       "migrations_dir": "migrations"
     }
   ],
