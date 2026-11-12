@@ -343,7 +343,7 @@ export async function closeClass(db: DB, meta: AuditMeta, id: number, input: { c
   if (input.closeDate < c.startDate) throw Errors.validation([{ path: 'closeDate', message: 'Ngày đóng lớp phải sau ngày bắt đầu' }]);
   const pending = await db.all<{ lesson_date: string }>(sql`
     SELECT lesson_date FROM lessons WHERE class_id = ${id} AND status <> 'CANCELLED' AND lesson_date <= ${input.closeDate}
-       AND lesson_date < ${vnDate()} AND attendance_status IN ('NOT_STARTED', 'DRAFT') ORDER BY lesson_date LIMIT 5`);
+       AND lesson_date < ${vnDate()} AND attendance_submitted_at IS NULL ORDER BY lesson_date LIMIT 5`);
   if (pending.length)
     throw Errors.business(
       'PENDING_ATTENDANCE',

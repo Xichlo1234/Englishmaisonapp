@@ -174,8 +174,8 @@ enrollmentRoutes.post('/:id/end', async (c) => {
 });
 
 export const lessonRoutes = new Hono<AppEnv>();
-lessonRoutes.use('*', requireAuth);
-lessonRoutes.patch('/:id', requireAnyPermission('classes.write', 'attendance.write'), async (c) => {
+// requireAuth gắn trực tiếp vào route (router /lessons dùng chung với lessonAttendanceRoutes)
+lessonRoutes.patch('/:id', requireAuth, requireAnyPermission('classes.write', 'attendance.write'), async (c) => {
   const { id } = parseParams(c, idParam);
   await cls.updateLesson(getDb(c.env.DB), auditMetaFrom(c), c.get('user'), id, await parseJson(c, lessonUpdateSchema));
   return c.json({ ok: true });

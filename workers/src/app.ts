@@ -18,6 +18,7 @@ import {
   teacherRoutes,
   userRoutes,
 } from './routes/classes.routes';
+import { attendanceRoutes, lessonAttendanceRoutes } from './routes/attendance.routes';
 
 export function createApp() {
   const app = new Hono<AppEnv>();
@@ -39,6 +40,8 @@ export function createApp() {
   api.route('/classes', classRoutes);
   api.route('/enrollments', enrollmentRoutes);
   api.route('/lessons', lessonRoutes);
+  api.route('/lessons', lessonAttendanceRoutes);
+  api.route('/attendance', attendanceRoutes);
   api.route('/teachers', teacherRoutes);
   api.route('/users', userRoutes);
 

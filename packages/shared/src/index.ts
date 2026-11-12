@@ -9,3 +9,4 @@ export * from './schemas/common';
 export * from './schemas/auth';
 export * from './schemas/students';
 export * from './schemas/classes';
+export * from './schemas/attendance';
