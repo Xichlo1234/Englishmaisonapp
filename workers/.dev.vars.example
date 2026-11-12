@@ -1,0 +1,4 @@
+# Sao chép thành .dev.vars cho môi trường local (KHÔNG commit .dev.vars)
+JWT_SECRET=thay-bang-chuoi-ngau-nhien-it-nhat-32-ky-tu
+# FCM_CLIENT_EMAIL=firebase-adminsdk-xxx@<project>.iam.gserviceaccount.com
+# FCM_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"

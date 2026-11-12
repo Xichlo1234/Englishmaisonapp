@@ -1,0 +1,8 @@
+packages:
+  - "apps/web"
+  - "workers"
+  - "packages/*"
+onlyBuiltDependencies:
+  - esbuild
+  - workerd
+  - sharp

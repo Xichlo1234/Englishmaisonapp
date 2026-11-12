@@ -1,0 +1,96 @@
+// Cấu hình Cloudflare Workers — xem docs/DEPLOYMENT.md.
+// Gói: Workers Free. KHÔNG chứa secret trong file này (dùng `wrangler secret put`, local dùng .dev.vars).
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ecm-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+
+  // Webapp (React build) được phục vụ cùng origin với API.
+  "assets": {
+    "directory": "../apps/web/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ecm-db",
+      // Thay bằng database_id thật sau khi chạy: wrangler d1 create ecm-db
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  "r2_buckets": [
+    // Bucket RIÊNG TƯ — không bật public access / r2.dev.
+    { "binding": "FILES", "bucket_name": "ecm-files" }
+  ],
+
+  "ratelimits": [
+    { "name": "LOGIN_LIMITER", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } }
+  ],
+
+  // Cron Triggers (khóa điểm danh, quá hạn học phí, nhắc lịch) sẽ được bật ở module tương ứng.
+  // Giờ UTC: "0 17 * * *" = 00:00 giờ VN. Gói Free cho phép tối đa 5 cron.
+
+  "vars": {
+    "APP_ENV": "development",
+    "APP_ORIGIN": "http://localhost:5173",
+    "ACCESS_TOKEN_TTL_SECONDS": "900",
+    "REFRESH_TTL_WEB_DAYS": "7",
+    "REFRESH_TTL_MOBILE_DAYS": "30",
+    // Gói Free giới hạn 10ms CPU/request → 30.000 vòng (~5ms). Khi lên gói Paid: tăng lên 100000;
+    // mật khẩu cũ được tự băm lại khi người dùng đăng nhập.
+    "PBKDF2_ITERATIONS": "30000",
+    "MAX_UPLOAD_MB": "5",
+    "FCM_PROJECT_ID": ""
+  },
+
+  "env": {
+    "staging": {
+      "name": "ecm-api-staging",
+      "d1_databases": [
+        { "binding": "DB", "database_name": "ecm-db-staging", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "migrations" }
+      ],
+      "r2_buckets": [{ "binding": "FILES", "bucket_name": "ecm-files-staging" }],
+      "ratelimits": [
+        { "name": "LOGIN_LIMITER", "namespace_id": "1002", "simple": { "limit": 10, "period": 60 } }
+      ],
+      "vars": {
+        "APP_ENV": "staging",
+        "APP_ORIGIN": "https://ecm-api-staging.example.workers.dev",
+        "ACCESS_TOKEN_TTL_SECONDS": "900",
+        "REFRESH_TTL_WEB_DAYS": "7",
+        "REFRESH_TTL_MOBILE_DAYS": "30",
+        "PBKDF2_ITERATIONS": "30000",
+        "MAX_UPLOAD_MB": "5",
+        "FCM_PROJECT_ID": ""
+      }
+    },
+    "production": {
+      "name": "ecm-api",
+      "d1_databases": [
+        { "binding": "DB", "database_name": "ecm-db", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "migrations" }
+      ],
+      "r2_buckets": [{ "binding": "FILES", "bucket_name": "ecm-files" }],
+      "ratelimits": [
+        { "name": "LOGIN_LIMITER", "namespace_id": "1003", "simple": { "limit": 10, "period": 60 } }
+      ],
+      "vars": {
+        "APP_ENV": "production",
+        "APP_ORIGIN": "https://app.example.vn",
+        "ACCESS_TOKEN_TTL_SECONDS": "900",
+        "REFRESH_TTL_WEB_DAYS": "7",
+        "REFRESH_TTL_MOBILE_DAYS": "30",
+        "PBKDF2_ITERATIONS": "30000",
+        "MAX_UPLOAD_MB": "5",
+        "FCM_PROJECT_ID": ""
+      }
+    }
+  }
+}

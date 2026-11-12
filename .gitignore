@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+.env
+*.log
+coverage/
+.DS_Store
+# Flutter
+apps/mobile/build/
+apps/mobile/.dart_tool/
+apps/mobile/android/key.properties
+apps/mobile/android/app/*.jks
+apps/mobile/android/app/google-services.json
+apps/mobile/ios/Runner/GoogleService-Info.plist
+backups/
