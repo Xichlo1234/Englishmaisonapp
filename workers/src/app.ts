@@ -7,6 +7,17 @@ import { meRoutes } from './routes/me.routes';
 import { fileRoutes } from './routes/files.routes';
 import { settingsRoutes } from './routes/settings.routes';
 import { guardianRoutes, studentRoutes } from './routes/students.routes';
+import {
+  calendarRoutes,
+  classRoutes,
+  enrollmentRoutes,
+  lessonRoutes,
+  roomRoutes,
+  scheduleRoutes,
+  shiftRoutes,
+  teacherRoutes,
+  userRoutes,
+} from './routes/classes.routes';
 
 export function createApp() {
   const app = new Hono<AppEnv>();
@@ -21,6 +32,15 @@ export function createApp() {
   api.route('/students', studentRoutes);
   api.route('/guardians', guardianRoutes);
   api.route('/files', fileRoutes);
+  api.route('/shifts', shiftRoutes);
+  api.route('/rooms', roomRoutes);
+  api.route('/calendar', calendarRoutes);
+  api.route('/schedules', scheduleRoutes);
+  api.route('/classes', classRoutes);
+  api.route('/enrollments', enrollmentRoutes);
+  api.route('/lessons', lessonRoutes);
+  api.route('/teachers', teacherRoutes);
+  api.route('/users', userRoutes);
 
   api.notFound((c) => c.json({ error: { code: 'NOT_FOUND', message: 'Không tìm thấy API' } }, 404));
 

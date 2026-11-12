@@ -35,8 +35,9 @@
     { "name": "LOGIN_LIMITER", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } }
   ],
 
-  // Cron Triggers (khóa điểm danh, quá hạn học phí, nhắc lịch) sẽ được bật ở module tương ứng.
-  // Giờ UTC: "0 17 * * *" = 00:00 giờ VN. Gói Free cho phép tối đa 5 cron.
+  // Cron Triggers (giờ UTC). "0 17 * * *" = 00:00 giờ VN: sinh buổi học 8 tuần tới cho lớp đang mở.
+  // Các cron khóa điểm danh, quá hạn học phí, nhắc lịch được thêm ở module tương ứng. Gói Free tối đa 5 cron.
+  "triggers": { "crons": ["0 17 * * *"] },
 
   "vars": {
     "APP_ENV": "development",
