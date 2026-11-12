@@ -113,3 +113,33 @@ Thêm giáo viên (hiện mật khẩu tạm một lần) · thêm phòng · t�
 | Hình ảnh nền | 4 hình SVG tự thiết kế (không dùng hình có bản quyền): minh họa trang đăng nhập, họa tiết chữ cái ABC rất mờ ở nền (vẫn giữ nền trắng), minh họa cuối thanh menu, minh họa màn hình trống. Tổng < 7KB. | Ảnh chụp E2E |
 
 E2E sau cập nhật: ✅ 27/27 bước.
+
+## Giai đoạn 3.5 — Điểm danh (12/11/2026)
+
+| Hạng mục | Kết quả | Ghi chú |
+|---|---|---|
+| TypeScript (shared, workers, web) | ✅ 0 lỗi | |
+| Unit test shared | ✅ 36/36 | |
+| Integration test workers | ✅ 64/64 | +7 test điểm danh |
+| Kiểm tra độ nhạy (mutation) | ✅ | Tắt quy tắc khóa phiên → test khóa phiên thất bại đúng như mong đợi |
+| E2E trình duyệt | ✅ 36/36 bước | 3 kịch bản; kịch bản điểm danh chạy dưới vai trò **giáo viên** |
+
+### Quy tắc nghiệp vụ đã kiểm thử
+- Mỗi buổi học là một phiên: Chưa điểm danh → Nháp → Đã xác nhận → Đã khóa.
+- **Không trùng bản ghi** cho cùng học sinh và buổi học (UNIQUE + UPSERT); gửi lại cùng dữ liệu khi mạng chập chờn → thành công, không nhân bản; hai người sửa cùng lúc → người sau nhận thông báo xung đột (409), giao diện tự tải lại và gửi lại lựa chọn của mình.
+- Học sinh không thuộc lớp vào ngày học → bị từ chối. Phút đi muộn chỉ lưu khi trạng thái "Đi muộn".
+- Xác nhận khi còn học sinh chưa chọn → bị chặn và liệt kê tên. Xác nhận xong: lưu người & thời gian xác nhận, buổi học chuyển "đã học".
+- Phụ huynh (có tài khoản, bật nhận thông báo) của học sinh vắng nhận thông báo trong ứng dụng; xác nhận lại **không tạo thông báo trùng**. (Gửi push qua Firebase thực hiện ở Giai đoạn 5.)
+- Sửa sau khi xác nhận vẫn được trong ngày và được đánh dấu "Sửa sau khi xác nhận"; lịch sử ghi rõ **cũ → mới**, người sửa, thời điểm.
+- Giáo viên không điểm danh được buổi tương lai (mở từ 30 phút trước giờ học); quản trị viên được.
+- **00:00 giờ VN (cron)** khóa mọi phiên của ngày đã qua; giáo viên không sửa/không mở khóa được; quản trị viên/chủ lớp mở khóa phải nhập lý do (ghi vào lịch sử), phiên tự khóa lại vào 00:00 tiếp theo.
+- Giáo viên lớp khác không xem được (404); phụ huynh xem được chuyên cần của con, không xem phiên điểm danh của lớp.
+- Thống kê: số buổi, có mặt, đi muộn, vắng, tỷ lệ chuyên cần = (có mặt + đi muộn) / số buổi đã điểm danh; ma trận tháng theo lớp.
+- Đóng lớp được kiểm tra theo "đã xác nhận" (buổi bị khóa mà chưa xác nhận vẫn chặn đóng lớp).
+
+### E2E điểm danh (vai trò giáo viên, trình duyệt thật)
+Giáo viên đăng nhập lần đầu → trang Điểm danh hôm nay · chọn trạng thái, "Tất cả có mặt", đi muộn 10 phút → tự lưu nháp · tải lại trang vẫn còn · **mất mạng**: lựa chọn được giữ, hiện nút Thử lại; có mạng lại → lưu được · xác nhận (hộp tổng kết) · sửa sau xác nhận → lịch sử "Có mặt → Đi muộn" · tổng hợp tháng · màn hình điện thoại 390px: 4 nút trên một hàng, cao ≥ 44px, không tràn ngang.
+
+### Lỗi phát hiện và đã sửa
+1. Nút trạng thái trên điện thoại ~40px, nhãn dài làm vỡ hàng → lưới 4 cột, cao 48px, nhãn ngắn trên điện thoại (Có mặt / Muộn / Vắng P / Vắng KP).
+2. Cột "Có mặt" ở ma trận tháng cộng cả đi muộn → chỉ đếm có mặt (đi muộn có cột riêng).

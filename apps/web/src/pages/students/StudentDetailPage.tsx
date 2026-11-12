@@ -22,6 +22,7 @@ import { fileUrl } from '@/lib/api';
 import { ageFrom, formatDateTimeVN, formatDateVN, GENDER_LABELS, STUDENT_STATUS_VARIANT } from '@/lib/format';
 import { studentKeys, studentsApi, type StudentDetail, type TimelineEntry } from '@/services/students';
 import { GuardiansPanel } from './GuardiansPanel';
+import { StudentAttendanceTab } from './StudentAttendanceTab';
 import { EnrollToClassSheet } from './EnrollToClassSheet';
 import { TransferSheet } from '@/pages/classes/dialogs';
 import { StatusActionDialog, type StatusAction } from './StatusActionDialog';
@@ -152,6 +153,7 @@ function StudentDetailView({ s }: { s: StudentDetail }) {
           <TabsTrigger value="info">Thông tin</TabsTrigger>
           <TabsTrigger value="guardians">Phụ huynh ({s.guardians.length})</TabsTrigger>
           <TabsTrigger value="classes">Lớp học</TabsTrigger>
+          {can('attendance.read') && <TabsTrigger value="attendance">Điểm danh</TabsTrigger>}
           {isFullScope && <TabsTrigger value="timeline">Nhật ký</TabsTrigger>}
         </TabsList>
 
@@ -221,6 +223,12 @@ function StudentDetailView({ s }: { s: StudentDetail }) {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {can('attendance.read') && (
+          <TabsContent value="attendance">
+            <StudentAttendanceTab studentId={s.id} />
+          </TabsContent>
+        )}
 
         {isFullScope && (
           <TabsContent value="timeline">

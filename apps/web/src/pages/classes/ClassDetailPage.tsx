@@ -436,7 +436,7 @@ function LessonsTab({ c }: { c: ClassDetail }) {
                 <TableHead>Giáo viên</TableHead>
                 <TableHead>Phòng</TableHead>
                 <TableHead>Điểm danh</TableHead>
-                {c.canManage && <TableHead />}
+                <TableHead />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -474,8 +474,14 @@ function LessonsTab({ c }: { c: ClassDetail }) {
                       </Badge>
                     )}
                   </TableCell>
+                  <TableCell className="whitespace-nowrap text-right">
+                    {l.status !== 'CANCELLED' && l.lessonDate <= addDays(today, 0) && (
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link to={`/diem-danh/${l.id}`}>Điểm danh</Link>
+                      </Button>
+                    )}
                   {c.canManage && (
-                    <TableCell className="whitespace-nowrap text-right">
+                    <>
                       {l.status === 'CANCELLED' ? (
                         <Button variant="ghost" size="sm" onClick={() => restore.mutate(l)} disabled={restore.isPending}>
                           Khôi phục
@@ -492,8 +498,9 @@ function LessonsTab({ c }: { c: ClassDetail }) {
                           </>
                         )
                       )}
-                    </TableCell>
+                    </>
                   )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
