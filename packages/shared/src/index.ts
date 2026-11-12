@@ -7,3 +7,4 @@ export * from './attendance';
 export * from './api-types';
 export * from './schemas/common';
 export * from './schemas/auth';
+export * from './schemas/students';

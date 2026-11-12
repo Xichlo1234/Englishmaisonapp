@@ -35,3 +35,40 @@ Cập nhật sau mỗi module. Lệnh chạy toàn bộ: `pnpm typecheck && pnpm
 ### Hạn chế đã biết
 - Giới hạn tần suất đăng nhập (Rate Limiting binding) hoạt động gần đúng trên Cloudflare (theo từng vị trí); lớp bảo vệ chính là khóa tài khoản lưu trong D1.
 - Thời gian CPU thực tế trên gói Free cần đo lại sau khi deploy lên tài khoản thật (Giai đoạn 7).
+
+## Giai đoạn 3.1 — Khung webapp & 3.2 — Module Học sinh (12/11/2026)
+
+| Hạng mục | Kết quả | Ghi chú |
+|---|---|---|
+| TypeScript (shared, workers, web) | ✅ 0 lỗi | |
+| Build web (Vite) | ✅ | Excel tách thành chunk riêng, chỉ tải khi bấm "Xuất Excel" |
+| Unit test shared | ✅ 36/36 | |
+| Integration test workers | ✅ 41/41 | +20 test module học sinh |
+| E2E trình duyệt (Chromium) | ✅ 14/14 bước | `scripts/e2e-local.sh` — DB sạch, tài khoản thật, không dữ liệu giả |
+| Giao diện điện thoại 390px | ✅ | Không tràn ngang; menu trượt; bảng cuộn trong khung |
+
+### Integration test module Học sinh
+- Tạo học sinh + phụ huynh mới: mã `HS00001` tự sinh, chuẩn hóa họ tên ("nguyễn   văn an" → "Nguyễn Văn An") và SĐT, ghi nhật ký.
+- Từ chối: không có phụ huynh, ngày sinh sau ngày nhập học, SĐT sai, ngày không tồn tại (30/02), tên quá ngắn.
+- Anh/chị/em dùng chung phụ huynh (tìm theo SĐT); cảnh báo trùng theo họ tên + ngày sinh.
+- Tìm kiếm không dấu, theo SĐT phụ huynh; phân trang; hồ sơ lưu trữ bị ẩn mặc định.
+- Sửa một trường không làm mất trường khác; version cũ → 409 `VERSION_CONFLICT`; xóa trắng trường bằng `null`.
+- Tạm nghỉ đóng ghi danh lớp (ngày kết thúc = ngày hiệu lực − 1); chặn chuyển trạng thái không hợp lệ; quay lại học.
+- **Không cho đặt ngày nghỉ trước buổi đã điểm danh** (bảo toàn dữ liệu điểm danh).
+- Lưu trữ → khôi phục về "Nghỉ học"; xóa cứng bị chặn khi có lịch sử; xóa được hồ sơ tạo nhầm (có nhật ký).
+- Không được bỏ phụ huynh cuối cùng; luôn đúng một liên hệ chính.
+- **Phân quyền:** giáo viên chỉ thấy học sinh lớp mình (học sinh khác → 404), không thêm/sửa được; phụ huynh chỉ xem con mình, không thấy ghi chú nội bộ, không xem danh sách.
+- **Ảnh R2:** khóa ngẫu nhiên không chứa tên; chỉ đọc qua API có kiểm tra quyền (`Cache-Control: private`); chưa đăng nhập → 401; phụ huynh khác → 404; tệp giả mạo đuôi PNG bị từ chối (kiểm tra magic bytes).
+
+### E2E (trình duyệt thật)
+Chưa đăng nhập → chuyển trang đăng nhập · sai mật khẩu báo lỗi · đăng nhập lần đầu bắt buộc đổi mật khẩu · danh sách trống có hướng dẫn · thêm học sinh + phụ huynh · thêm em dùng lại phụ huynh (gợi ý theo SĐT) + cảnh báo trùng · tìm không dấu và theo SĐT · sửa hồ sơ · tải ảnh lên R2 và hiển thị · thêm phụ huynh thứ hai, đổi liên hệ chính · tạm nghỉ có lý do, hiện trong nhật ký · xuất Excel · đăng xuất · giao diện 390px.
+
+### Lỗi phát hiện và đã sửa trong module
+1. Sửa hồ sơ: trường không gửi lên bị ghi `null` (do transform của Zod) → sửa schema, thêm test "sửa một trường không làm mất trường khác".
+2. Drizzle `db.batch` không hỗ trợ SQL thô → viết `runBatch` gọi trực tiếp `D1Database.batch` (vẫn nguyên tử, tham số luôn được bind).
+3. Web: sau đăng nhập bị đẩy về trang đăng nhập (xóa nhầm cache phiên) → chỉ xóa dữ liệu khác, giữ trạng thái người dùng.
+4. API làm mới phiên trả 422 khi không có token → trả 401 đúng chuẩn.
+
+### Ghi chú
+- Thư viện shadcn/ui: registry `ui.shadcn.com` bị chặn trong môi trường build, các component được viết theo đúng cấu trúc shadcn (Radix UI + Tailwind + `cva`) trong `apps/web/src/components/ui`, có `components.json` để dùng CLI sau này.
+- Menu chỉ hiển thị module đã hoàn thành (hiện tại: Học sinh). Các mục khác được bật khi module tương ứng qua kiểm thử.

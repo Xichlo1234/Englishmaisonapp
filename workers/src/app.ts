@@ -4,6 +4,9 @@ import { AppError } from './lib/errors';
 import { csrfProtection, requestId, securityHeaders } from './middleware/security';
 import { authRoutes } from './routes/auth.routes';
 import { meRoutes } from './routes/me.routes';
+import { fileRoutes } from './routes/files.routes';
+import { settingsRoutes } from './routes/settings.routes';
+import { guardianRoutes, studentRoutes } from './routes/students.routes';
 
 export function createApp() {
   const app = new Hono<AppEnv>();
@@ -14,6 +17,10 @@ export function createApp() {
   api.get('/health', (c) => c.json({ status: 'ok', time: new Date().toISOString() }));
   api.route('/auth', authRoutes);
   api.route('/me', meRoutes);
+  api.route('/settings', settingsRoutes);
+  api.route('/students', studentRoutes);
+  api.route('/guardians', guardianRoutes);
+  api.route('/files', fileRoutes);
 
   api.notFound((c) => c.json({ error: { code: 'NOT_FOUND', message: 'Không tìm thấy API' } }, 404));
 

@@ -8,7 +8,7 @@ import { clearAuthCookies, COOKIE_REFRESH, issueCsrfCookie, setAuthCookies } fro
 import { requireAuth } from '../middleware/auth';
 import { auditMetaFrom } from '../services/audit.service';
 import * as auth from '../services/auth.service';
-import { parseJson } from '../validators/validate';
+import { parseJson, parseWith } from '../validators/validate';
 import { revokeAllSessionsStmt } from '../services/auth.service';
 
 export const authRoutes = new Hono<AppEnv>();
@@ -46,7 +46,10 @@ authRoutes.post('/login', async (c) => {
 authRoutes.post('/refresh', async (c) => {
   const cookieToken = getCookie(c, COOKIE_REFRESH);
   let bodyToken: string | undefined;
-  if (!cookieToken) bodyToken = (await parseJson(c, refreshSchema)).refreshToken;
+  if (!cookieToken) {
+    const body = await c.req.json().catch(() => null);
+    if (body) bodyToken = parseWith(refreshSchema, body).refreshToken;
+  }
   const token = cookieToken ?? bodyToken;
   if (!token) throw Errors.unauthorized();
 

@@ -14,3 +14,5 @@ apps/mobile/android/app/*.jks
 apps/mobile/android/app/google-services.json
 apps/mobile/ios/Runner/GoogleService-Info.plist
 backups/
+.wrangler-dev.log
+e2e-shots/
