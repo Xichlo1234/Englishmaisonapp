@@ -63,7 +63,7 @@ export function AppLayout() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r bg-sidebar md:flex">
+      <aside data-print-hide className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r bg-sidebar md:flex">
         <Brand />
         <SidebarNav />
         <img src="/images/sidebar-art.svg" alt="" aria-hidden className="mt-auto w-full select-none" draggable={false} />
@@ -78,7 +78,7 @@ export function AppLayout() {
       </Sheet>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/95 px-4 backdrop-blur md:px-6">
+        <header data-print-hide className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/95 px-4 backdrop-blur md:px-6">
           <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setOpen(true)} aria-label="Mở menu">
             <Menu />
           </Button>
@@ -112,7 +112,7 @@ export function AppLayout() {
         </header>
         <main className="relative flex-1 px-4 py-6 md:px-8">
           {/* Họa tiết chữ cái rất mờ — nền vẫn là màu trắng theo thiết kế */}
-          <div aria-hidden className="pointer-events-none absolute inset-0 bg-[url(/images/pattern.svg)] bg-[length:240px] opacity-[0.035]" />
+          <div aria-hidden data-print-hide className="pointer-events-none absolute inset-0 bg-[url(/images/pattern.svg)] bg-[length:240px] opacity-[0.035]" />
           <div className="relative">
             <Outlet />
           </div>

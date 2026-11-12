@@ -76,3 +76,17 @@
     font-size: 15px;
   }
 }
+
+/* In ấn (phiếu thu, báo cáo): chỉ in nội dung chính */
+@media print {
+  [data-print-hide] {
+    display: none !important;
+  }
+  html,
+  body {
+    background: #fff !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+}

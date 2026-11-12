@@ -35,7 +35,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/ca-hoc', label: 'Ca học', icon: CalendarClock, permission: 'classes.read', ready: true, tone: tone('bg-amber-100 text-amber-600', 'bg-amber-50 text-amber-800 ring-amber-200') },
   { to: '/diem-danh', label: 'Điểm danh', icon: ClipboardCheck, permission: 'attendance.read', ready: true, tone: tone('bg-emerald-100 text-emerald-600', 'bg-emerald-50 text-emerald-700 ring-emerald-200') },
   { to: '/diem-so', label: 'Điểm số', icon: Star, permission: 'grades.read', ready: true, tone: tone('bg-pink-100 text-pink-600', 'bg-pink-50 text-pink-700 ring-pink-200') },
-  { to: '/hoc-phi', label: 'Học phí', icon: Wallet, permission: 'fees.read', ready: false, tone: tone('bg-teal-100 text-teal-600', 'bg-teal-50 text-teal-700 ring-teal-200') },
+  { to: '/hoc-phi', label: 'Học phí', icon: Wallet, permission: 'fees.read', ready: true, tone: tone('bg-teal-100 text-teal-600', 'bg-teal-50 text-teal-700 ring-teal-200') },
   { to: '/giao-vien', label: 'Giáo viên', icon: UserSquare2, permission: 'teachers.write', ready: true, tone: tone('bg-orange-100 text-orange-600', 'bg-orange-50 text-orange-700 ring-orange-200') },
   { to: '/bao-cao', label: 'Báo cáo', icon: BarChart3, permission: 'reports.read', ready: false, tone: tone('bg-cyan-100 text-cyan-600', 'bg-cyan-50 text-cyan-700 ring-cyan-200') },
   { to: '/cai-dat', label: 'Cài đặt', icon: Settings, permission: 'settings.manage', ready: false, tone: tone('bg-slate-200 text-slate-600', 'bg-slate-100 text-slate-800 ring-slate-300') },

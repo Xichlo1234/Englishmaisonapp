@@ -24,6 +24,7 @@ import { studentKeys, studentsApi, type StudentDetail, type TimelineEntry } from
 import { GuardiansPanel } from './GuardiansPanel';
 import { StudentAttendanceTab } from './StudentAttendanceTab';
 import { StudentResultsTab } from './StudentResultsTab';
+import { StudentFeesTab } from './StudentFeesTab';
 import { EnrollToClassSheet } from './EnrollToClassSheet';
 import { TransferSheet } from '@/pages/classes/dialogs';
 import { StatusActionDialog, type StatusAction } from './StatusActionDialog';
@@ -156,6 +157,7 @@ function StudentDetailView({ s }: { s: StudentDetail }) {
           <TabsTrigger value="classes">Lớp học</TabsTrigger>
           {can('attendance.read') && <TabsTrigger value="attendance">Điểm danh</TabsTrigger>}
           {can('grades.read') && <TabsTrigger value="results">Kết quả học tập</TabsTrigger>}
+          {can('fees.read') && <TabsTrigger value="fees">Học phí</TabsTrigger>}
           {isFullScope && <TabsTrigger value="timeline">Nhật ký</TabsTrigger>}
         </TabsList>
 
@@ -235,6 +237,12 @@ function StudentDetailView({ s }: { s: StudentDetail }) {
         {can('grades.read') && (
           <TabsContent value="results">
             <StudentResultsTab studentId={s.id} />
+          </TabsContent>
+        )}
+
+        {can('fees.read') && (
+          <TabsContent value="fees">
+            <StudentFeesTab studentId={s.id} studentName={s.fullName} />
           </TabsContent>
         )}
 

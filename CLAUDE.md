@@ -13,7 +13,7 @@ workers/            — Hono API + Drizzle ORM + D1, phục vụ cả web assets
   migrations/       — D1 migrations (0000 tables, 0001 seed roles)
   test/             — Vitest integration tests (~80 passing)
 apps/web/           — React 19, Vite 7, Tailwind 4, TanStack Query, RHF+zod
-  src/pages/        — auth, students, classes, teachers, shifts, attendance, grades
+  src/pages/        — auth, students, classes, teachers, shifts, attendance, grades, fees
   src/services/     — API client functions
   src/components/ui/ — hand-written shadcn-style components
 apps/mobile/        — Flutter scaffold (chưa có màn hình, chỉ placeholder)
@@ -53,20 +53,18 @@ pnpm db:migrate:local # Áp dụng migrations local
 ### Đã xong
 - [x] Phase 1: Thiết kế + hạ tầng
 - [x] Phase 2: API backend (auth, students, classes, shifts, teachers, attendance, grades, fees)
-- [x] Phase 3 web: auth, students, classes, teachers, shifts, attendance, grades
+- [x] Phase 3 web: auth, students, classes, teachers, shifts, attendance, grades, fees (gói học phí, giảm giá, hóa đơn theo kỳ, thu tiền, phiếu thu, điều chỉnh có duyệt, sổ thu)
 - [ ] CI/CD auto-deploy: workflow có, đang lỗi vì token thiếu quyền Workers Scripts Edit
 
 ### Đang làm / Chưa xong
-- [ ] **Fees web** — code đang ở `git stash@{0}` ("fees-web-wip"). Pop stash, fix E2E approve test, fix NativeSelect className, merge.
 - [ ] Users/accounts management web
 - [ ] Reports page (báo cáo)
 - [ ] Dashboard tổng quan
 - [ ] Phase 4: Mobile Flutter (đăng nhập, lịch, điểm danh, điểm, học phí)
 - [ ] Phase 5: FCM push notifications
 
-### Bugs đã biết
-- Fees E2E: sau approve, list filter "Chờ duyệt" nên không thấy "Đã duyệt" (API trả 200 OK)
-- NativeSelect: className apply vào wrapper thay vì select element (chevron bị lệch)
+## Kiểm thử E2E
+- `bash scripts/e2e-local.sh` (mọi module) hoặc `E2E_ONLY=fees bash scripts/e2e-local.sh`; ảnh chụp ở `e2e-shots/` (gitignored).
 
 ## Git
 - Branch: main

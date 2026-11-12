@@ -20,6 +20,9 @@ import { AttendancePage } from '@/pages/attendance/AttendancePage';
 import { AttendanceSheetPage } from '@/pages/attendance/AttendanceSheetPage';
 import { GradesPage } from '@/pages/grades/GradesPage';
 import { AssessmentSheetPage } from '@/pages/grades/AssessmentSheetPage';
+import { FeesPage } from '@/pages/fees/FeesPage';
+import { InvoiceDetailPage } from '@/pages/fees/InvoiceDetailPage';
+import { ReceiptPage } from '@/pages/fees/ReceiptPage';
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -88,6 +91,9 @@ export const router = createBrowserRouter([
       { path: 'diem-danh/:lessonId', element: <RequirePermission perm="attendance.read"><AttendanceSheetPage /></RequirePermission> },
       { path: 'diem-so', element: <RequirePermission perm="grades.read"><GradesPage /></RequirePermission> },
       { path: 'diem-so/:id', element: <RequirePermission perm="grades.read"><AssessmentSheetPage /></RequirePermission> },
+      { path: 'hoc-phi', element: <RequirePermission perm="fees.read"><FeesPage /></RequirePermission> },
+      { path: 'hoc-phi/hoa-don/:id', element: <RequirePermission perm="fees.read"><InvoiceDetailPage /></RequirePermission> },
+      { path: 'hoc-phi/phieu-thu/:id', element: <RequirePermission perm="fees.read"><ReceiptPage /></RequirePermission> },
       { path: 'ca-hoc', element: <RequirePermission perm="classes.read"><ShiftsPage /></RequirePermission> },
       { path: 'giao-vien', element: <RequirePermission perm="teachers.write"><TeachersPage /></RequirePermission> },
       { path: '*', element: <NotFound /> },
