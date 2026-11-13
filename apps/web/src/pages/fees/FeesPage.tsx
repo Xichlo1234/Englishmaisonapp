@@ -306,6 +306,7 @@ function GenerateTab() {
 }
 
 function LedgerTab() {
+  const { can } = useAuth();
   const [from, setFrom] = useState(vnDate().slice(0, 8) + '01');
   const [to, setTo] = useState(vnDate());
   const [method, setMethod] = useState('');
@@ -359,6 +360,7 @@ function LedgerTab() {
                     <TableHead>Phương thức</TableHead>
                     <TableHead className="text-right">Số tiền</TableHead>
                     <TableHead>Người thu</TableHead>
+                    {can('fees.write') && <TableHead />}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -379,6 +381,17 @@ function LedgerTab() {
                       <TableCell>{PAYMENT_METHOD_LABELS[p.method]}</TableCell>
                       <TableCell className="text-right tabular-nums">{formatVnd(p.amount)}</TableCell>
                       <TableCell className="text-sm">{p.receivedBy}</TableCell>
+                      {can('fees.write') && (
+                        <TableCell className="text-right">
+                          {!p.voided && (
+                            <Button variant="ghost" size="sm" className="no-underline" asChild>
+                              <Link to={`/hoc-phi/hoa-don/${p.invoiceId}?huy=${p.id}`}>
+                                <Pencil /> Hủy / sửa
+                              </Link>
+                            </Button>
+                          )}
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { vndInWords } from '../src/pages/fees/ReceiptPage';
+import { vndInWords } from '../src/lib/money-words';
 
 describe('Đọc số tiền bằng chữ (phiếu thu)', () => {
   it.each([

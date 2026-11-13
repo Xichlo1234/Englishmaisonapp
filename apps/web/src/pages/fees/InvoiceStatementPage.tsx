@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ErrorBlock, errorMessage, LoadingBlock } from '@/components/common/page';
 import { useAuth } from '@/hooks/use-auth';
 import { feeKeys, feesApi, type InvoiceStatement, type StatementLesson } from '@/services/fees';
-import { vndInWords } from './ReceiptPage';
+import { vndInWords } from '@/lib/money-words';
 
 const periodName = (label: string) => (/^\d{4}-\d{2}$/.test(label) ? `tháng ${Number(label.slice(5))}/${label.slice(0, 4)}` : label);
 

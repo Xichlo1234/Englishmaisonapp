@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useParams, useSearchParams } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Ban, Banknote, FileImage, Loader2, Printer, Save, Undo2 } from 'lucide-react';
+import { ArrowLeft, Ban, Banknote, FileImage, Loader2, Printer, Save, Undo2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { ADJUSTMENT_TYPE_LABELS, formatDateVN, formatVnd, INVOICE_STATUS_LABELS, PAYMENT_METHOD_LABELS, vnDate } from '@ecm/shared';
 import { Alert } from '@/components/ui/alert';
@@ -35,7 +35,12 @@ function View({ inv }: { inv: InvoiceDetail }) {
   const { can } = useAuth();
   const qc = useQueryClient();
   const [paying, setPaying] = useState(false);
-  const [adjusting, setAdjusting] = useState(false);
+  const [params, setParams] = useSearchParams();
+  // ?huy=<paymentId> (from the ledger) opens the void request for that payment directly.
+  const presetVoid = Number(params.get('huy')) || null;
+  const [adjusting, setAdjusting] = useState(() => !!presetVoid && can('fees.write') && inv.payments.some((p) => p.id === presetVoid && !p.voided));
+  const [voidPaymentId, setVoidPaymentId] = useState<number | null>(presetVoid);
+  const openAdjust = (paymentId: number | null) => (setVoidPaymentId(paymentId), setAdjusting(true));
   const [cancelling, setCancelling] = useState(false);
   const refresh = () => qc.invalidateQueries({ queryKey: ['fees'] });
   const canWrite = can('fees.write');
@@ -83,7 +88,7 @@ function View({ inv }: { inv: InvoiceDetail }) {
               </Button>
             )}
             {canWrite && inv.status !== 'DRAFT' && inv.status !== 'CANCELLED' && (
-              <Button variant="outline" onClick={() => setAdjusting(true)}>
+              <Button variant="outline" onClick={() => openAdjust(null)}>
                 <Undo2 /> Đề nghị điều chỉnh
               </Button>
             )}
@@ -102,7 +107,9 @@ function View({ inv }: { inv: InvoiceDetail }) {
           ['Giảm giá', formatVnd(inv.discount_amount - inv.absence_deduction), 'bg-secondary'],
           ...(inv.absence_deduction > 0 ? [[`Trừ ${inv.absence_count} buổi vắng kỳ trước`, formatVnd(inv.absence_deduction), 'bg-secondary']] : []),
           ['Đã nộp', formatVnd(inv.amount_paid), 'bg-success-soft text-green-900'],
-          ['Còn thiếu', formatVnd(inv.remaining), inv.remaining > 0 ? 'bg-warning-soft text-yellow-900' : 'bg-success-soft text-green-900'],
+          inv.status === 'CANCELLED'
+            ? ['Còn thiếu', '—', 'bg-secondary text-muted-foreground']
+            : ['Còn thiếu', formatVnd(inv.remaining), inv.remaining > 0 ? 'bg-warning-soft text-yellow-900' : 'bg-success-soft text-green-900'],
         ].map(([l, v, t]) => (
           <div key={l} className={cn('rounded-lg px-4 py-3', t)}>
             <div className="text-xs">{l}</div>
@@ -149,12 +156,17 @@ function View({ inv }: { inv: InvoiceDetail }) {
                   </TableCell>
                   <TableCell className={cn('text-right tabular-nums', p.voided && 'line-through')}>{formatVnd(p.amount)}</TableCell>
                   <TableCell className="text-sm">{p.receivedBy}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="whitespace-nowrap text-right">
                     <Button variant="ghost" size="sm" asChild>
                       <Link to={`/hoc-phi/phieu-thu/${p.id}`}>
                         <Printer /> Phiếu thu
                       </Link>
                     </Button>
+                    {canWrite && !p.voided && inv.status !== 'CANCELLED' && (
+                      <Button variant="ghost" size="sm" className="text-destructive" onClick={() => openAdjust(p.id)}>
+                        <XCircle /> Hủy giao dịch
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -204,7 +216,17 @@ function View({ inv }: { inv: InvoiceDetail }) {
       )}
 
       <PaySheet inv={inv} open={paying} onOpenChange={setPaying} onDone={refresh} />
-      <AdjustSheet inv={inv} open={adjusting} onOpenChange={setAdjusting} onDone={refresh} />
+      <AdjustSheet
+        key={voidPaymentId ?? 'adjust'}
+        inv={inv}
+        presetPaymentId={voidPaymentId}
+        open={adjusting}
+        onOpenChange={(o) => {
+          setAdjusting(o);
+          if (!o && params.has('huy')) setParams({}, { replace: true });
+        }}
+        onDone={refresh}
+      />
       <DateReasonDialog
         open={cancelling}
         onOpenChange={setCancelling}
@@ -358,11 +380,23 @@ function PaySheet({ inv, open, onOpenChange, onDone }: { inv: InvoiceDetail; ope
   );
 }
 
-function AdjustSheet({ inv, open, onOpenChange, onDone }: { inv: InvoiceDetail; open: boolean; onOpenChange: (o: boolean) => void; onDone: () => void }) {
-  const [type, setType] = useState<'REFUND' | 'CORRECTION' | 'VOID'>('REFUND');
+function AdjustSheet({
+  inv,
+  presetPaymentId,
+  open,
+  onOpenChange,
+  onDone,
+}: {
+  inv: InvoiceDetail;
+  presetPaymentId: number | null;
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  onDone: () => void;
+}) {
+  const [type, setType] = useState<'REFUND' | 'CORRECTION' | 'VOID'>(presetPaymentId ? 'VOID' : 'REFUND');
   const [amount, setAmount] = useState<number | null>(null);
   const [direction, setDirection] = useState<'INCREASE' | 'DECREASE'>('DECREASE');
-  const [paymentId, setPaymentId] = useState('');
+  const [paymentId, setPaymentId] = useState(presetPaymentId ? String(presetPaymentId) : '');
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
   const live = inv.payments.filter((p) => !p.voided);

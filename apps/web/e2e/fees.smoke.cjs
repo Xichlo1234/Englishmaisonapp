@@ -164,6 +164,41 @@ const call = (page, method, p, body) =>
       await page.getByText('-200.000 ₫').waitFor();
       await shot('f05-ledger');
     });
+
+    await step('Thu nhầm số tiền: ô tiền đọc bằng chữ; Sổ thu → Hủy / sửa → hủy giao dịch (có duyệt) → hủy hóa đơn lập sai', async () => {
+      const inv = await call(page, 'POST', '/invoices', { studentId, periodLabel: 'Phí tài liệu', grossAmount: 199_900_000, dueDate: '2026-12-31', issue: true });
+      if (inv.status !== 201) throw new Error('Tạo hóa đơn lỗi ' + JSON.stringify(inv.body));
+      await page.goto(`${BASE}/hoc-phi/hoa-don/${inv.body.id}`);
+      await page.getByRole('button', { name: 'Thu tiền' }).click();
+      await page.fill('#pay-amount', '199900000');
+      await page.getByTestId('money-words').getByText('Một trăm chín mươi chín triệu chín trăm nghìn đồng').waitFor();
+      await page.getByRole('button', { name: /Xác nhận thu/ }).click();
+      await page.getByText(/Đã ghi nhận phiếu thu PT-/).waitFor();
+      await page.getByRole('button', { name: 'Xong' }).click();
+
+      await page.goto(`${BASE}/hoc-phi?tab=ledger`);
+      const row = page.getByRole('row').filter({ hasText: '199.900.000 ₫' });
+      await row.getByRole('link', { name: 'Hủy / sửa' }).click();
+      await page.waitForURL(/hoa-don\/\d+\?huy=\d+/);
+      if ((await page.locator('#adj-type').inputValue()) !== 'VOID') throw new Error('Phiếu không chọn sẵn loại Hủy giao dịch');
+      if (!(await page.locator('#adj-pay').inputValue())) throw new Error('Phiếu không chọn sẵn giao dịch');
+      await page.fill('#adj-reason', 'Nhập nhầm số tiền, thừa ba số 0');
+      await page.getByRole('button', { name: 'Gửi đề nghị' }).click();
+      await page.getByText(/Đã gửi đề nghị/).waitFor();
+
+      await page.goto(`${BASE}/hoc-phi?tab=adjustments`);
+      await page.getByRole('row').filter({ hasText: 'Nhập nhầm số tiền' }).getByRole('button', { name: 'Duyệt' }).click();
+      await page.getByText('Nhập nhầm số tiền').waitFor({ state: 'detached' });
+
+      await page.goto(`${BASE}/hoc-phi/hoa-don/${inv.body.id}`);
+      await page.getByText('Đã hủy', { exact: true }).waitFor();
+      await page.getByRole('button', { name: 'Hủy hóa đơn' }).click();
+      await page.fill('#drd-reason', 'Lập sai số tiền');
+      await page.getByRole('button', { name: 'Hủy hóa đơn' }).last().click();
+      await page.getByText('Đã hủy hóa đơn').waitFor();
+      await page.locator('div').filter({ hasText: /^Còn thiếu—$/ }).first().waitFor();
+      await shot('f07-voided');
+    });
   } finally {
     for (const r of results) console.log(r.join(' '));
     console.log(errors.length ? `Lỗi JS: ${errors.join(' | ')}` : 'Không có lỗi JavaScript');
