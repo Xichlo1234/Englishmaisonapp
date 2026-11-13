@@ -128,6 +128,15 @@ export interface StatementLesson {
   status: AttendanceStatus | null;
   lateMinutes: number | null;
 }
+export interface AttendanceSummary {
+  total: number;
+  attended: number;
+  late: number;
+  excused: number;
+  unexcused: number;
+  notMarked: number;
+  upcoming: number;
+}
 export interface InvoiceStatement {
   center: { name: string; address: string | null; phone: string | null };
   student: { id: number; fullName: string; code: string; dateOfBirth: string | null };
@@ -149,8 +158,20 @@ export interface InvoiceStatement {
     remaining: number;
     note: string | null;
   };
-  absence: { periodLabel: string; periodStart: string; periodEnd: string; count: number; sessionTotal: number | null; unitPrice: number | null; lessons: StatementLesson[] } | null;
+  absence: {
+    periodLabel: string;
+    periodStart: string;
+    periodEnd: string;
+    count: number;
+    sessionTotal: number | null;
+    unitPrice: number | null;
+    lessons: StatementLesson[];
+    summary: AttendanceSummary;
+  } | null;
   lessons: StatementLesson[];
+  /** Attendance in the billed period (open-ended `to` for course/session packages). */
+  attendance: (AttendanceSummary & { from: string; to: string | null }) | null;
+  sessions: { purchased: number; used: number; remaining: number; countedStatuses: AttendanceStatus[] } | null;
 }
 
 interface LedgerBase {

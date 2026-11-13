@@ -126,6 +126,7 @@ const call = (page, method, p, body) =>
       await page.getByText('HÓA ĐƠN HỌC PHÍ').waitFor();
       await page.getByText('Lý Thanh Tâm').waitFor();
       await page.getByText('Bằng chữ: Sáu trăm hai mươi nghìn đồng').waitFor();
+      await page.getByTestId('attendance-summary').getByText('Số buổi học').waitFor();
       const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Tải ảnh' }).click()]);
       const file = path.join(SHOTS, 'f06-invoice-image.png');
       await dl.saveAs(file);

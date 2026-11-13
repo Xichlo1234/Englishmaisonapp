@@ -781,6 +781,22 @@ async function studentLessons(db: DB, studentId: number, classId: number | null,
      ORDER BY l.lesson_date, l.start_time`);
 }
 
+type StatementLesson = Awaited<ReturnType<typeof studentLessons>>[number];
+
+/** Attendance tally for a list of lessons; "attended" counts present + late. */
+function summarizeLessons(lessons: StatementLesson[], today: string) {
+  const s = { total: lessons.length, attended: 0, late: 0, excused: 0, unexcused: 0, notMarked: 0, upcoming: 0 };
+  for (const l of lessons) {
+    if (l.status === 'PRESENT') s.attended++;
+    else if (l.status === 'LATE') (s.attended++, s.late++);
+    else if (l.status === 'EXCUSED') s.excused++;
+    else if (l.status === 'UNEXCUSED') s.unexcused++;
+    else if (l.date > today) s.upcoming++;
+    else s.notMarked++;
+  }
+  return s;
+}
+
 export async function invoiceStatement(db: DB, user: AuthUser, id: number) {
   const inv = (await getInvoice(db, user, id)) as Awaited<ReturnType<typeof getInvoice>> & Record<string, any>;
   const [sfp] = inv.student_fee_plan_id
@@ -799,6 +815,24 @@ export async function invoiceStatement(db: DB, user: AuthUser, id: number) {
   const [student] = await db.all<{ full_name: string; student_code: string; date_of_birth: string | null }>(
     sql`SELECT full_name, student_code, date_of_birth FROM students WHERE id = ${inv.student_id}`,
   );
+  const today = vnDate();
+  // Monthly invoices cover [period_start, period_end]; course/session packages may be open-ended from period_start.
+  const lessonFrom = (inv.period_start as string | null) ?? null;
+  const lessonTo = (inv.period_end as string | null) ?? '9999-12-31';
+  const lessons = lessonFrom ? await studentLessons(db, inv.student_id, classId, lessonFrom, lessonTo) : [];
+  const absenceLessons = source ? await studentLessons(db, inv.student_id, classId, source.period_start, source.period_end) : [];
+  let sessions: { purchased: number; used: number; remaining: number; countedStatuses: string[] } | null = null;
+  if (inv.sessions_purchased && lessonFrom) {
+    // Same rule as the student's fee tab (per_session_deduct_statuses), limited to this package's window.
+    const deduct = await setting<string[]>(db, 'per_session_deduct_statuses', ['PRESENT', 'LATE', 'UNEXCUSED']);
+    const [u] = await db.all<{ n: number }>(sql`
+      SELECT count(*) AS n FROM attendance_records a JOIN lessons l ON l.id = a.lesson_id
+       WHERE a.student_id = ${inv.student_id} AND l.status <> 'CANCELLED' AND l.lesson_date BETWEEN ${lessonFrom} AND ${lessonTo}
+         ${classId ? sql`AND l.class_id = ${classId}` : sql.empty()}
+         AND a.status IN (${sql.join(deduct.map((d) => sql`${d}`), sql`, `)})`);
+    const purchased = inv.sessions_purchased as number;
+    sessions = { purchased, used: u!.n, remaining: Math.max(0, purchased - u!.n), countedStatuses: deduct };
+  }
   return {
     center: { name: center.center_name ?? '', address: center.center_address ?? null, phone: center.center_phone ?? null },
     student: { id: inv.student_id, fullName: student!.full_name, code: student!.student_code, dateOfBirth: student!.date_of_birth },
@@ -828,10 +862,13 @@ export async function invoiceStatement(db: DB, user: AuthUser, id: number) {
           count: inv.absence_count as number,
           sessionTotal: inv.absence_session_total as number | null,
           unitPrice: inv.absence_unit_price as number | null,
-          lessons: await studentLessons(db, inv.student_id, classId, source.period_start, source.period_end),
+          lessons: absenceLessons,
+          summary: summarizeLessons(absenceLessons, today),
         }
       : null,
-    lessons: inv.period_start && inv.period_end ? await studentLessons(db, inv.student_id, classId, inv.period_start, inv.period_end) : [],
+    lessons,
+    attendance: lessonFrom ? { from: lessonFrom, to: inv.period_end as string | null, ...summarizeLessons(lessons, today) } : null,
+    sessions,
   };
 }
 

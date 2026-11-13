@@ -180,7 +180,7 @@ describe('Quá hạn, gói buổi, phân quyền', () => {
 
   it('gói buổi: số buổi còn lại = đã mua − (có mặt + muộn + vắng không phép)', async () => {
     const sid = await newStudent();
-    await post('/invoices', { studentId: sid, periodLabel: 'Gói 12 buổi', periodStart: addDays(today, -10), sessionsPurchased: 12, grossAmount: 1_800_000, dueDate: today });
+    const pkg = (await (await post('/invoices', { studentId: sid, periodLabel: 'Gói 12 buổi', periodStart: addDays(today, -10), sessionsPurchased: 12, grossAmount: 1_800_000, dueDate: today })).json()) as { id: number };
     const t = await post('/teachers', { fullName: 'GV Phí', email: `gv${uid()}@t.vn` });
     const teacherId = ((await t.json()) as { id: number }).id;
     const shift = ((await (await post('/shifts', { name: `C${uid()}`, startTime: '06:00', endTime: '07:00' })).json()) as { id: number }).id;
@@ -195,6 +195,10 @@ describe('Quá hạn, gói buổi, phân quyền', () => {
     }
     const f = await get<{ sessions: { purchased: number; used: number; remaining: number } }>(`/students/${sid}/fees`);
     expect(f.sessions).toMatchObject({ purchased: 12, used: 3, remaining: 9 });
+    // hóa đơn chi tiết của gói hiện cùng số buổi đã học / còn lại
+    const pst = await get<{ sessions: { purchased: number; used: number; remaining: number }; attendance: { from: string; to: string | null } }>(`/invoices/${pkg.id}/statement`);
+    expect(pst.sessions).toMatchObject({ purchased: 12, used: 3, remaining: 9 });
+    expect(pst.attendance).toMatchObject({ from: addDays(today, -10), to: null });
   });
 
   it('khấu trừ buổi vắng (có phép + không phép) của kỳ trước vào hóa đơn kỳ sau, mỗi kỳ chỉ trừ một lần', async () => {
@@ -245,9 +249,17 @@ describe('Quá hạn, gói buổi, phân quyền', () => {
       center: { name: string };
       student: { fullName: string };
       invoice: { grossAmount: number; discountAmount: number; absenceDeduction: number; amountDue: number };
-      absence: { periodLabel: string; count: number; sessionTotal: number; unitPrice: number; lessons: { date: string; status: string | null }[] };
+      absence: { periodLabel: string; count: number; sessionTotal: number; unitPrice: number; lessons: { date: string; status: string | null }[]; summary: Record<string, number> };
+      attendance: Record<string, unknown>;
     };
+    // tháng 11: 1 buổi có mặt, 1 buổi đi muộn, 1 buổi đã qua nhưng chưa điểm danh (không có buổi vắng → không ảnh hưởng kỳ sau)
+    for (const [d, st] of [['2026-11-02', 'PRESENT'], ['2026-11-04', 'LATE'], ['2026-11-09', null]] as const) {
+      const l = await env.DB.prepare(`INSERT INTO lessons (class_id, lesson_date, start_time, end_time, teacher_id) VALUES (?, ?, '05:00', '06:00', ?) RETURNING id`).bind(cls, d, teacherId).first<{ id: number }>();
+      if (st) await env.DB.prepare(`INSERT INTO attendance_records (lesson_id, student_id, status, marked_by, marked_at) VALUES (?, ?, ?, ?, '2026-11-01T00:00:00Z')`).bind(l!.id, sid, st, marker.id).run();
+    }
     const st = await get<Statement>(`/invoices/${nov.id}/statement`);
+    expect(st.attendance).toMatchObject({ from: '2026-11-01', to: '2026-11-30', total: 3, attended: 2, late: 1, excused: 0, unexcused: 0, notMarked: 1, upcoming: 0 });
+    expect(st.absence.summary).toEqual({ total: 8, attended: 5, late: 1, excused: 2, unexcused: 1, notMarked: 0, upcoming: 0 });
     expect(st.invoice).toMatchObject({ grossAmount: 1_800_000, discountAmount: 100_000, absenceDeduction: 675_000, amountDue: 1_025_000 });
     expect(st.absence).toMatchObject({ periodLabel: '2026-10', count: 3, sessionTotal: 8, unitPrice: 225_000 });
     expect(st.absence.lessons.map((l) => l.status)).toEqual(statuses);

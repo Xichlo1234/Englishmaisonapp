@@ -54,15 +54,42 @@ function LessonTable({ lessons, today }: { lessons: StatementLesson[]; today: st
   );
 }
 
-function countBy(lessons: StatementLesson[]) {
-  const c = { attended: 0, late: 0, excused: 0, unexcused: 0 };
-  for (const l of lessons) {
-    if (l.status === 'PRESENT') c.attended++;
-    else if (l.status === 'LATE') (c.attended++, c.late++);
-    else if (l.status === 'EXCUSED') c.excused++;
-    else if (l.status === 'UNEXCUSED') c.unexcused++;
-  }
-  return c;
+function AttendanceTile({ label, value, sub, tone = 'text-slate-900' }: { label: string; value: number; sub?: string; tone?: string }) {
+  return (
+    <div className="rounded-md bg-white px-2 py-1.5 text-center ring-1 ring-[#dfe9e4]">
+      <div className={`text-xl font-bold tabular-nums ${tone}`}>{value}</div>
+      <div className="text-[11px] leading-tight text-slate-600">{label}</div>
+      {sub && <div className="text-[10px] text-slate-500">{sub}</div>}
+    </div>
+  );
+}
+
+/** Tóm tắt số buổi đi học của kỳ tính tiền — phần phụ huynh cần đọc đầu tiên. */
+function AttendanceSummaryBox({ s }: { s: InvoiceStatement }) {
+  const at = s.attendance;
+  if (!at) return null;
+  const range = at.to ? `${formatDateVN(at.from)} – ${formatDateVN(at.to)}` : `từ ${formatDateVN(at.from)}`;
+  const pending = at.upcoming + at.notMarked;
+  return (
+    <section className="mt-4 rounded-lg border border-[#cfe3dc] bg-[#f3f9f7] p-3" data-testid="attendance-summary">
+      <h3 className="mb-2 text-[13px] font-semibold text-[#0f514d]">
+        Tình hình đi học {s.sessions ? 'của gói' : periodName(s.invoice.periodLabel)} ({range})
+      </h3>
+      <div className="grid grid-cols-5 gap-2">
+        <AttendanceTile label="Số buổi học" value={at.total} />
+        <AttendanceTile label="Đã đi học" value={at.attended} sub={at.late ? `trong đó muộn ${at.late}` : undefined} tone="text-green-700" />
+        <AttendanceTile label="Vắng có phép" value={at.excused} tone={at.excused ? 'text-red-600' : 'text-slate-900'} />
+        <AttendanceTile label="Vắng không phép" value={at.unexcused} tone={at.unexcused ? 'text-red-600' : 'text-slate-900'} />
+        <AttendanceTile label="Chưa diễn ra" value={pending} sub={at.notMarked ? `${at.notMarked} buổi chưa điểm danh` : undefined} tone="text-slate-500" />
+      </div>
+      {s.sessions && (
+        <p className="mt-2 text-[13px]">
+          Gói <b>{s.sessions.purchased} buổi</b>: đã học <b>{s.sessions.used}</b> · còn lại <b className="text-[#0f514d]">{s.sessions.remaining} buổi</b>
+          <span className="text-slate-500"> (tính buổi: {s.sessions.countedStatuses.map((st) => ATTENDANCE_STATUS_LABELS[st].toLowerCase()).join(', ')})</span>
+        </p>
+      )}
+    </section>
+  );
 }
 
 /** Tờ hóa đơn khổ cố định — dùng để xuất ảnh PNG / in. */
@@ -70,7 +97,6 @@ export function StatementSheet({ s }: { s: InvoiceStatement }) {
   const today = vnDate();
   const inv = s.invoice;
   const a = s.absence;
-  const ac = a ? countBy(a.lessons) : null;
   const row = (label: React.ReactNode, value: string, cls = '') => (
     <tr className={cls}>
       <td className="py-1 pr-4">{label}</td>
@@ -101,15 +127,17 @@ export function StatementSheet({ s }: { s: InvoiceStatement }) {
           Kỳ học phí: <b>{periodName(inv.periodLabel)}</b>
         </div>
         <div>Gói học phí: {inv.planName ?? '—'}</div>
-        {inv.periodStart && inv.periodEnd && (
+        {inv.periodStart && (
           <div>
-            Thời gian: {formatDateVN(inv.periodStart)} – {formatDateVN(inv.periodEnd)}
+            Thời gian: {inv.periodEnd ? `${formatDateVN(inv.periodStart)} – ${formatDateVN(inv.periodEnd)}` : `từ ${formatDateVN(inv.periodStart)}`}
           </div>
         )}
         <div>
           Hạn nộp: <b>{formatDateVN(inv.dueDate)}</b>
         </div>
       </div>
+
+      <AttendanceSummaryBox s={s} />
 
       <table className="mt-4 w-full border-t border-slate-200">
         <tbody>
@@ -145,8 +173,8 @@ export function StatementSheet({ s }: { s: InvoiceStatement }) {
             Chi tiết buổi học {periodName(a.periodLabel)} ({formatDateVN(a.periodStart)} – {formatDateVN(a.periodEnd)})
           </h3>
           <p className="mb-2 text-[13px] text-slate-600">
-            {a.lessons.length} buổi · đi học {ac!.attended}
-            {ac!.late > 0 && ` (muộn ${ac!.late})`} · vắng có phép {ac!.excused} · vắng không phép {ac!.unexcused}
+            {a.summary.total} buổi · đi học {a.summary.attended}
+            {a.summary.late > 0 && ` (muộn ${a.summary.late})`} · vắng có phép {a.summary.excused} · vắng không phép {a.summary.unexcused}
           </p>
           <LessonTable lessons={a.lessons} today={today} />
         </section>
@@ -155,7 +183,7 @@ export function StatementSheet({ s }: { s: InvoiceStatement }) {
       {s.lessons.length > 0 && (
         <section className="mt-5">
           <h3 className="mb-2 font-semibold">
-            Lịch học {periodName(inv.periodLabel)} ({s.lessons.length} buổi)
+            {s.sessions ? 'Các buổi học của gói' : `Lịch học ${periodName(inv.periodLabel)}`} ({s.lessons.length} buổi)
           </h3>
           <LessonTable lessons={s.lessons} today={today} />
         </section>
