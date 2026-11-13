@@ -13,6 +13,7 @@ import {
   invoiceListQuery,
   paymentCreateSchema,
   paymentListQuery,
+  dailyCollectionsQuery,
   studentFeePlanEndSchema,
   studentFeePlanSchema,
 } from '@ecm/shared';
@@ -126,3 +127,7 @@ for (const [path, approve] of [
     await fee.decideAdjustment(getDb(c.env.DB), auditMetaFrom(c), c.get('user'), id, approve, note);
     return c.json({ ok: true });
   });
+
+export const feeReportRoutes = new Hono<AppEnv>();
+feeReportRoutes.use('*', requireAuth, read);
+feeReportRoutes.get('/daily-collections', async (c) => c.json(await fee.dailyCollections(getDb(c.env.DB), parseQuery(c, dailyCollectionsQuery))));

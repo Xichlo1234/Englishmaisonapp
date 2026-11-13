@@ -1,4 +1,4 @@
-import type { AttendanceStatus, InvoiceStatus } from '@ecm/shared';
+import type { AttendanceStatus, InvoiceStatus, PaymentMethod } from '@ecm/shared';
 import { api } from '@/lib/api';
 
 export interface FeePlan {
@@ -117,6 +117,7 @@ export const feeKeys = {
   student: (id: number) => ['fees', 'student', id] as const,
   receipt: (id: number) => ['fees', 'receipt', id] as const,
   statement: (id: number) => ['fees', 'statement', id] as const,
+  daily: (f: object) => ['fees', 'daily', f] as const,
 };
 
 export interface StatementLesson {
@@ -152,6 +153,34 @@ export interface InvoiceStatement {
   lessons: StatementLesson[];
 }
 
+interface LedgerBase {
+  id: number;
+  at: string;
+  code: string;
+  amount: number;
+  method: PaymentMethod;
+  studentName: string;
+  studentCode: string;
+  invoiceId: number;
+  invoiceCode: string;
+  actor: string;
+}
+export type LedgerEntry =
+  | (LedgerBase & { kind: 'RECEIPT'; status: 'ACTIVE' | 'VOIDED' | 'REVERSED'; invoiceCancelled: boolean })
+  | (LedgerBase & { kind: 'ADJUSTMENT'; type: 'REFUND' | 'CORRECTION' | 'VOID'; paymentCode: string | null; reason: string });
+export interface DailyRow {
+  day: string;
+  receiptCount: number;
+  cash: number;
+  bank: number;
+  other: number;
+  adjustmentCount: number;
+  adjustments: number;
+  cashNet: number;
+  net: number;
+  runningNet: number;
+}
+
 export const feesApi = {
   statement: (id: number) => api<InvoiceStatement>(`/invoices/${id}/statement`),
   sendToGuardians: (id: number) => api<{ sent: number; withoutAccount: number }>(`/invoices/${id}/send`, { body: {} }),
@@ -171,10 +200,10 @@ export const feesApi = {
   adjustments: (status?: string) => api<{ data: AdjustmentRow[] }>('/adjustments', { query: { status } }),
   decide: (id: number, approve: boolean, note?: string) => api(`/adjustments/${id}/${approve ? 'approve' : 'reject'}`, { body: { note: note || null } }),
   payments: (q: { from: string; to: string; method?: string }) =>
-    api<{
-      data: (PaymentRow & { studentName: string; studentCode: string; invoiceCode: string; invoiceId: number })[];
-      summary: { gross: number; adjustments: number; net: number; byMethod: Record<string, number>; count: number };
-    }>('/payments', { query: q }),
+    api<{ data: LedgerEntry[]; summary: { receipts: number; adjustments: number; net: number; byMethod: Record<string, number>; receiptCount: number } }>('/payments', {
+      query: q,
+    }),
+  dailyCollections: (q: { from: string; to: string }) => api<{ data: DailyRow[]; totals: Omit<DailyRow, 'day' | 'runningNet'> }>('/reports/daily-collections', { query: q }),
   receipt: (id: number) => api<Record<string, any>>(`/payments/${id}/receipt`),
   studentFees: (id: number) => api<StudentFees>(`/students/${id}/fees`),
   addStudentPlan: (id: number, b: unknown) => api(`/students/${id}/fee-plans`, { body: b }),

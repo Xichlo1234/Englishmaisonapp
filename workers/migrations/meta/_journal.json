@@ -29,6 +29,13 @@
       "when": 1794496473149,
       "tag": "0003_class_posts_homework",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1794532027551,
+      "tag": "0004_adjustment_method",
+      "breakpoints": true
     }
   ]
 }

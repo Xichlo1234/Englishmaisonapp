@@ -33,6 +33,7 @@ import { usePublicSettings } from '@/hooks/use-settings';
 import { formatDateTimeVN } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { feeKeys, feesApi, INVOICE_VARIANT, type FeePlan } from '@/services/fees';
+import { DailyTab, LedgerTab } from './LedgerTabs';
 
 export function FeesPage() {
   const { can } = useAuth();
@@ -47,6 +48,7 @@ export function FeesPage() {
           <TabsTrigger value="invoices">Công nợ</TabsTrigger>
           {can('fees.write') && <TabsTrigger value="generate">Tạo hóa đơn kỳ</TabsTrigger>}
           <TabsTrigger value="ledger">Sổ thu</TabsTrigger>
+          <TabsTrigger value="daily">Tổng hợp ngày</TabsTrigger>
           <TabsTrigger value="adjustments">
             Điều chỉnh
             {!!pending.data?.length && <span className="ml-1 rounded-full bg-destructive px-1.5 text-[11px] text-white">{pending.data.length}</span>}
@@ -62,7 +64,10 @@ export function FeesPage() {
           </TabsContent>
         )}
         <TabsContent value="ledger">
-          <LedgerTab />
+          <LedgerTab key={`${params.get('from')}-${params.get('to')}`} initialFrom={params.get('from') ?? undefined} initialTo={params.get('to') ?? undefined} />
+        </TabsContent>
+        <TabsContent value="daily">
+          <DailyTab onOpenDay={(day) => setParams({ tab: 'ledger', from: day, to: day })} />
         </TabsContent>
         <TabsContent value="adjustments">
           <AdjustmentsTab />
@@ -301,105 +306,6 @@ function GenerateTab() {
           </Table>
         </Card>
       )}
-    </div>
-  );
-}
-
-function LedgerTab() {
-  const { can } = useAuth();
-  const [from, setFrom] = useState(vnDate().slice(0, 8) + '01');
-  const [to, setTo] = useState(vnDate());
-  const [method, setMethod] = useState('');
-  const q = useQuery({ queryKey: feeKeys.payments({ from, to, method }), queryFn: () => feesApi.payments({ from, to, method: method || undefined }), enabled: !!from && !!to && from <= to });
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-end gap-2">
-        <FormField label="Từ ngày" htmlFor="lg-from" className="w-40">
-          <DateInput id="lg-from" value={from} onChange={setFrom} />
-        </FormField>
-        <FormField label="Đến ngày" htmlFor="lg-to" className="w-40">
-          <DateInput id="lg-to" value={to} onChange={setTo} />
-        </FormField>
-        <FormField label="Phương thức" htmlFor="lg-m" className="w-40">
-          <NativeSelect id="lg-m" value={method} onChange={(e) => setMethod(e.target.value)}>
-            <option value="">Tất cả</option>
-            {Object.entries(PAYMENT_METHOD_LABELS).map(([k, v]) => (
-              <option key={k} value={k}>
-                {v}
-              </option>
-            ))}
-          </NativeSelect>
-        </FormField>
-      </div>
-      {q.isLoading ? (
-        <LoadingBlock />
-      ) : q.isError ? (
-        <ErrorBlock error={q.error} onRetry={() => q.refetch()} />
-      ) : q.data ? (
-        <>
-          <div className="grid gap-3 sm:grid-cols-4">
-            <Tile label={`Tổng thu (${q.data.summary.count} phiếu)`} value={formatVnd(q.data.summary.gross)} tone="bg-success-soft text-green-900" />
-            {Object.entries(PAYMENT_METHOD_LABELS).map(([k, v]) => (
-              <Tile key={k} label={v} value={formatVnd(q.data!.summary.byMethod[k] ?? 0)} tone="bg-secondary" />
-            ))}
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Hoàn tiền/điều chỉnh đã duyệt trong kỳ: <b>{formatVnd(q.data.summary.adjustments)}</b> · Thực thu: <b>{formatVnd(q.data.summary.net)}</b>
-          </p>
-          <Card className="overflow-hidden p-0">
-            {!q.data.data.length ? (
-              <EmptyBlock title="Không có giao dịch" />
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Thời gian</TableHead>
-                    <TableHead>Mã phiếu</TableHead>
-                    <TableHead>Học sinh</TableHead>
-                    <TableHead>Hóa đơn</TableHead>
-                    <TableHead>Phương thức</TableHead>
-                    <TableHead className="text-right">Số tiền</TableHead>
-                    <TableHead>Người thu</TableHead>
-                    {can('fees.write') && <TableHead />}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {q.data.data.map((p) => (
-                    <TableRow key={p.id} className={cn(p.voided && 'text-muted-foreground line-through')}>
-                      <TableCell className="whitespace-nowrap text-sm">{formatDateTimeVN(p.paidAt)}</TableCell>
-                      <TableCell>
-                        <Link to={`/hoc-phi/phieu-thu/${p.id}`} className="font-mono text-xs hover:text-primary">
-                          {p.paymentCode}
-                        </Link>
-                      </TableCell>
-                      <TableCell>{p.studentName}</TableCell>
-                      <TableCell>
-                        <Link to={`/hoc-phi/hoa-don/${p.invoiceId}`} className="font-mono text-xs hover:text-primary">
-                          {p.invoiceCode}
-                        </Link>
-                      </TableCell>
-                      <TableCell>{PAYMENT_METHOD_LABELS[p.method]}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatVnd(p.amount)}</TableCell>
-                      <TableCell className="text-sm">{p.receivedBy}</TableCell>
-                      {can('fees.write') && (
-                        <TableCell className="text-right">
-                          {!p.voided && (
-                            <Button variant="ghost" size="sm" className="no-underline" asChild>
-                              <Link to={`/hoc-phi/hoa-don/${p.invoiceId}?huy=${p.id}`}>
-                                <Pencil /> Hủy / sửa
-                              </Link>
-                            </Button>
-                          )}
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </Card>
-        </>
-      ) : null}
     </div>
   );
 }

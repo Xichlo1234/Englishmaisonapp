@@ -114,7 +114,7 @@ describe('Điều chỉnh có duyệt', () => {
   it('hoàn tiền: chờ duyệt không đổi số đã thu; người đề nghị không tự duyệt; người khác duyệt → giảm số đã thu', async () => {
     const { invoiceId } = await issuedInvoice();
     await pay(invoiceId, 1_000_000);
-    const r = await post(`/invoices/${invoiceId}/adjustments`, { type: 'REFUND', amount: 200_000, reason: 'Nghỉ 2 buổi do ốm' });
+    const r = await post(`/invoices/${invoiceId}/adjustments`, { type: 'REFUND', amount: 200_000, method: 'CASH', reason: 'Nghỉ 2 buổi do ốm' });
     expect(r.status).toBe(201);
     const adj = (await r.json()) as { id: number; adjustmentCode: string };
     expect(adj.adjustmentCode).toMatch(/^DC-\d{8}-\d{4}$/);
@@ -131,7 +131,7 @@ describe('Điều chỉnh có duyệt', () => {
     const { invoiceId } = await issuedInvoice();
     const r = await pay(invoiceId, 600_000);
     const pid = ((await r.json()) as { id: number }).id;
-    expect((await post(`/invoices/${invoiceId}/adjustments`, { type: 'REFUND', amount: 700_000, reason: 'Hoàn quá số thu' })).status).toBe(422);
+    expect((await post(`/invoices/${invoiceId}/adjustments`, { type: 'REFUND', amount: 700_000, method: 'CASH', reason: 'Hoàn quá số thu' })).status).toBe(422);
     const v = (await (await post(`/invoices/${invoiceId}/adjustments`, { type: 'VOID', paymentId: pid, reason: 'Thu nhầm học sinh' })).json()) as { id: number };
     await post(`/adjustments/${v.id}/approve`, {}, admin2);
     const d = await get<{ amount_paid: number; payments: { voided: number }[] }>(`/invoices/${invoiceId}`);
@@ -140,7 +140,7 @@ describe('Điều chỉnh có duyệt', () => {
     expect((await post(`/invoices/${invoiceId}/adjustments`, { type: 'VOID', paymentId: pid, reason: 'Hủy lần hai' })).status).toBe(422);
 
     await pay(invoiceId, 100_000);
-    const c = (await (await post(`/invoices/${invoiceId}/adjustments`, { type: 'CORRECTION', direction: 'DECREASE', amount: 50_000, reason: 'Ghi nhầm số' })).json()) as { id: number };
+    const c = (await (await post(`/invoices/${invoiceId}/adjustments`, { type: 'CORRECTION', direction: 'DECREASE', amount: 50_000, method: 'CASH', reason: 'Ghi nhầm số' })).json()) as { id: number };
     expect((await post(`/adjustments/${c.id}/reject`, { note: 'Không đúng' }, admin2)).status).toBe(200);
     expect((await get<{ amount_paid: number }>(`/invoices/${invoiceId}`)).amount_paid).toBe(100_000);
     const audit = await env.DB.prepare(`SELECT count(*) n FROM audit_logs WHERE entity_type = 'invoice' AND entity_id = ? AND action LIKE 'adjustment.%'`).bind(invoiceId).first<{ n: number }>();
@@ -278,15 +278,76 @@ describe('Quá hạn, gói buổi, phân quyền', () => {
     expect(dec.amountDue).toBe(1_800_000); // tháng 11 chưa có buổi học nào trong lớp này
   });
 
-  it('sổ thu tổng hợp theo phương thức', async () => {
+  it('sổ thu dạng nhật ký: phiếu thu (+) và bút toán đảo (−) cùng sổ, tiền theo phương thức là số ròng', async () => {
+    type Entry = { kind: 'RECEIPT' | 'ADJUSTMENT'; id: number; amount: number; method: string; invoiceId: number; status?: string; invoiceCancelled?: boolean; type?: string; paymentCode?: string | null };
+    type Ledger = { data: Entry[]; summary: { receipts: number; adjustments: number; net: number; byMethod: Record<string, number>; receiptCount: number } };
+    const ledger = (from = today, to = today) => get<Ledger>(`/payments?from=${from}&to=${to}`);
+    const before = (await ledger()).summary;
     const { invoiceId } = await issuedInvoice();
-    await api(`/invoices/${invoiceId}/payments`, json({ amount: 200_000, method: 'BANK_TRANSFER', referenceNo: 'FT123' }, { headers: { ...bearer(admin), 'Idempotency-Key': crypto.randomUUID() } }));
-    const led = await get<{ summary: { gross: number; byMethod: Record<string, number> }; data: { invoiceId: number }[] }>(`/payments?from=${today}&to=${today}`);
-    expect(led.data.some((p) => p.invoiceId === invoiceId)).toBe(true);
-    expect(led.summary.byMethod.BANK_TRANSFER).toBeGreaterThanOrEqual(200_000);
-    const pid = led.data.find((p) => p.invoiceId === invoiceId) as unknown as { id: number };
-    const receipt = await get<{ paymentCode: string; studentName: string }>(`/payments/${pid.id}/receipt`);
-    expect(receipt.studentName).toBe('Học Sinh Phí');
+    await pay(invoiceId, 1_000_000);
+    // hoàn tiền phải ghi phương thức
+    expect((await post(`/invoices/${invoiceId}/adjustments`, { type: 'REFUND', amount: 200_000, reason: 'Hoàn chuyển khoản' })).status).toBe(422);
+    const refund = (await (await post(`/invoices/${invoiceId}/adjustments`, { type: 'REFUND', amount: 200_000, method: 'BANK_TRANSFER', reason: 'Hoàn chuyển khoản' })).json()) as { id: number };
+    await post(`/adjustments/${refund.id}/approve`, {}, admin2);
+
+    const after = await ledger();
+    expect(after.summary.receipts - before.receipts).toBe(1_000_000);
+    expect(after.summary.adjustments - before.adjustments).toBe(-200_000);
+    expect(after.summary.net - before.net).toBe(800_000);
+    expect((after.summary.byMethod.CASH ?? 0) - (before.byMethod.CASH ?? 0)).toBe(1_000_000);
+    expect((after.summary.byMethod.BANK_TRANSFER ?? 0) - (before.byMethod.BANK_TRANSFER ?? 0)).toBe(-200_000);
+    const mine = after.data.filter((e) => e.invoiceId === invoiceId);
+    expect(mine.map((e) => [e.kind, e.amount, e.method])).toEqual([
+      ['ADJUSTMENT', -200_000, 'BANK_TRANSFER'],
+      ['RECEIPT', 1_000_000, 'CASH'],
+    ]);
+    expect(mine[1]).toMatchObject({ status: 'ACTIVE', invoiceCancelled: false });
+
+    // Hủy giao dịch: bút toán lấy phương thức của phiếu gốc, phiếu thu được đánh dấu VOIDED
+    const inv2 = (await issuedInvoice()).invoiceId;
+    await pay(inv2, 300_000);
+    const p2 = (await ledger()).data.find((e) => e.invoiceId === inv2 && e.kind === 'RECEIPT')!;
+    const v = (await (await post(`/invoices/${inv2}/adjustments`, { type: 'VOID', paymentId: p2.id, reason: 'Thu nhầm học sinh' })).json()) as { id: number };
+    await post(`/adjustments/${v.id}/approve`, {}, admin2);
+    const l2 = (await ledger()).data.filter((e) => e.invoiceId === inv2);
+    expect(l2.find((e) => e.kind === 'RECEIPT')).toMatchObject({ status: 'VOIDED' });
+    expect(l2.find((e) => e.kind === 'ADJUSTMENT')).toMatchObject({ type: 'VOID', amount: -300_000, method: 'CASH', paymentCode: expect.stringMatching(/^PT-/) });
+
+    // Đảo bằng hoàn tiền rồi hủy hóa đơn → phiếu thu hiện REVERSED + hóa đơn đã hủy
+    const inv3 = (await issuedInvoice()).invoiceId;
+    await pay(inv3, 500_000);
+    const r3 = (await (await post(`/invoices/${inv3}/adjustments`, { type: 'REFUND', amount: 500_000, method: 'CASH', reason: 'Lập sai hóa đơn' })).json()) as { id: number };
+    await post(`/adjustments/${r3.id}/approve`, {}, admin2);
+    expect((await post(`/invoices/${inv3}/cancel`, { reason: 'Lập sai số tiền' })).status).toBe(200);
+    expect((await ledger()).data.find((e) => e.invoiceId === inv3 && e.kind === 'RECEIPT')).toMatchObject({ status: 'REVERSED', invoiceCancelled: true });
+    const receipt = await get<{ voided: number; invoiceCancelled: number }>(`/payments/${(await ledger()).data.find((e) => e.invoiceId === inv3 && e.kind === 'RECEIPT')!.id}/receipt`);
+    expect(receipt).toMatchObject({ voided: 0, invoiceCancelled: 1 });
     expect((await patch(`/invoices/${invoiceId}`, { discountAmount: 0 })).status).toBe(422); // đã phát hành thì không sửa trực tiếp
+  });
+
+  it('bút toán đảo ghi vào ngày được duyệt; báo cáo tổng hợp ngày khớp sổ thu', async () => {
+    const tomorrow = addDays(today, 1);
+    const { invoiceId } = await issuedInvoice();
+    await pay(invoiceId, 400_000);
+    const r = (await (await post(`/invoices/${invoiceId}/adjustments`, { type: 'REFUND', amount: 100_000, method: 'CASH', reason: 'Hoàn ngày sau' })).json()) as { id: number };
+    await post(`/adjustments/${r.id}/approve`, {}, admin2);
+    // giả lập duyệt vào ngày hôm sau
+    await env.DB.prepare(`UPDATE payment_adjustments SET approved_at = ? WHERE id = ?`).bind(`${tomorrow}T03:00:00.000Z`, r.id).run();
+    const todayLedger = await get<{ data: { id: number; kind: string }[] }>(`/payments?from=${today}&to=${today}`);
+    expect(todayLedger.data.some((e) => e.kind === 'ADJUSTMENT' && e.id === r.id)).toBe(false);
+    const nextLedger = await get<{ data: { id: number; kind: string }[] }>(`/payments?from=${tomorrow}&to=${tomorrow}`);
+    expect(nextLedger.data.some((e) => e.kind === 'ADJUSTMENT' && e.id === r.id)).toBe(true);
+
+    type Daily = { data: { day: string; net: number; runningNet: number; cash: number; adjustments: number }[]; totals: { net: number; cash: number; adjustments: number } };
+    const from = addDays(today, -2);
+    const daily = await get<Daily>(`/reports/daily-collections?from=${from}&to=${today}`);
+    expect(daily.data.map((d) => d.day)).toEqual([from, addDays(today, -1), today]); // có cả ngày không phát sinh
+    const led = await get<{ summary: { net: number; byMethod: Record<string, number>; adjustments: number } }>(`/payments?from=${from}&to=${today}`);
+    expect(daily.totals.net).toBe(led.summary.net);
+    expect(daily.totals.adjustments).toBe(led.summary.adjustments);
+    expect(daily.data[2]!.runningNet).toBe(daily.totals.net);
+    expect((await api(`/reports/daily-collections?from=2025-01-01&to=${today}`, { headers: bearer(admin) })).status).toBe(422);
+    const teacher = await createUser({ role: 'TEACHER' });
+    expect((await api(`/reports/daily-collections?from=${today}&to=${today}`, { headers: bearer((await loginMobile(teacher)).accessToken) })).status).toBe(403);
   });
 });

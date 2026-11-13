@@ -26,7 +26,7 @@ export function ReceiptPage() {
           <Printer /> In / Lưu PDF
         </Button>
       </div>
-      <article className="receipt rounded-lg border bg-white p-8 text-[15px] leading-relaxed text-black shadow-sm print:border-0 print:p-0 print:shadow-none">
+      <article className="receipt relative overflow-hidden rounded-lg border bg-white p-8 text-[15px] leading-relaxed text-black shadow-sm print:border-0 print:p-0 print:shadow-none">
         <header className="mb-6 flex items-start justify-between">
           <div>
             <div className="font-semibold">{r.centerName || 'Lớp học tiếng Anh'}</div>
@@ -39,7 +39,19 @@ export function ReceiptPage() {
           </div>
         </header>
         <h1 className="mb-6 text-center text-2xl font-bold tracking-wide">PHIẾU THU</h1>
-        {!!r.voided && <p className="mb-4 text-center font-semibold text-red-600">GIAO DỊCH ĐÃ BỊ HỦY</p>}
+        {(!!r.voided || !!r.invoiceCancelled) && (
+          <>
+            <div
+              aria-hidden
+              className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-12 rounded-xl border-[6px] border-red-600/70 px-8 py-3 text-5xl font-black tracking-widest text-red-600/70"
+            >
+              ĐÃ HỦY
+            </div>
+            <p className="mb-4 text-center font-semibold text-red-600">
+              {r.voided ? 'GIAO DỊCH ĐÃ BỊ HỦY' : 'KHOẢN THU ĐÃ ĐƯỢC HOÀN/ĐẢO — HÓA ĐƠN ĐÃ HỦY'} · không có giá trị thanh toán
+            </p>
+          </>
+        )}
         <dl className="grid grid-cols-[170px_1fr] gap-y-2">
           <dt>Người nộp:</dt>
           <dd>{r.guardianName ?? '—'}</dd>

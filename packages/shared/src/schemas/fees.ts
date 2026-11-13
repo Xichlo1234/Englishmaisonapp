@@ -111,6 +111,11 @@ export const paymentListQuery = z.object({
   method: z.enum(PAYMENT_METHODS).optional(),
 });
 
+export const dailyCollectionsQuery = z
+  .object({ from: isoDate, to: isoDate })
+  .refine((v) => v.from <= v.to, 'Khoảng ngày không hợp lệ')
+  .refine((v) => (Date.parse(v.to) - Date.parse(v.from)) / 86400000 <= 366, 'Tối đa 366 ngày mỗi lần xem');
+
 export const adjustmentCreateSchema = z
   .object({
     type: z.enum(['REFUND', 'CORRECTION', 'VOID']),
@@ -118,9 +123,12 @@ export const adjustmentCreateSchema = z
     amount: vndAmount.optional(),
     direction: z.enum(['INCREASE', 'DECREASE']).optional(),
     paymentId: z.number().int().positive().optional(),
+    /** How the money moved; required for REFUND/CORRECTION (VOID uses the original payment's method). */
+    method: z.enum(PAYMENT_METHODS).optional(),
     reason: z.string().trim().min(5, 'Nhập lý do (tối thiểu 5 ký tự)').max(500),
   })
   .refine((v) => v.type !== 'VOID' || !!v.paymentId, { message: 'Chọn giao dịch cần hủy', path: ['paymentId'] })
   .refine((v) => v.type === 'VOID' || (!!v.amount && v.amount > 0), { message: 'Nhập số tiền', path: ['amount'] })
-  .refine((v) => v.type !== 'CORRECTION' || !!v.direction, { message: 'Chọn tăng hoặc giảm', path: ['direction'] });
+  .refine((v) => v.type !== 'CORRECTION' || !!v.direction, { message: 'Chọn tăng hoặc giảm', path: ['direction'] })
+  .refine((v) => v.type === 'VOID' || !!v.method, { message: 'Chọn phương thức (tiền mặt / chuyển khoản)', path: ['method'] });
 export const adjustmentDecisionSchema = z.object({ note: optText(300) });

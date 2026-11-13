@@ -397,15 +397,17 @@ function AdjustSheet({
   const [amount, setAmount] = useState<number | null>(null);
   const [direction, setDirection] = useState<'INCREASE' | 'DECREASE'>('DECREASE');
   const [paymentId, setPaymentId] = useState(presetPaymentId ? String(presetPaymentId) : '');
+  const [method, setMethod] = useState('');
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
   const live = inv.payments.filter((p) => !p.voided);
+  const sameAsPayment = type !== 'VOID' && amount ? live.find((p) => p.amount === amount) : undefined;
   const m = useMutation({
     mutationFn: () =>
       feesApi.requestAdjustment(inv.id, {
         type,
         reason: reason.trim(),
-        ...(type === 'VOID' ? { paymentId: Number(paymentId) } : { amount }),
+        ...(type === 'VOID' ? { paymentId: Number(paymentId) } : { amount, method }),
         ...(type === 'CORRECTION' ? { direction } : {}),
       }),
     onSuccess: () => {
@@ -458,6 +460,24 @@ function AdjustSheet({
             <FormField label="Số tiền" htmlFor="adj-amount" required>
               <MoneyInput id="adj-amount" value={amount} onChange={setAmount} />
             </FormField>
+            <FormField label={type === 'REFUND' ? 'Hoàn trả bằng' : 'Phương thức'} htmlFor="adj-method" required hint="Để tiền mặt trên sổ khớp với tiền trong két">
+              <NativeSelect id="adj-method" value={method} onChange={(e) => setMethod(e.target.value)}>
+                <option value="">— Chọn —</option>
+                {Object.entries(PAYMENT_METHOD_LABELS).map(([k, v]) => (
+                  <option key={k} value={k}>
+                    {v}
+                  </option>
+                ))}
+              </NativeSelect>
+            </FormField>
+            {sameAsPayment && (
+              <Alert variant="warning">
+                Số tiền bằng đúng phiếu thu {sameAsPayment.paymentCode}. Nếu phiếu đó ghi nhầm, hãy chọn loại <b>Hủy giao dịch nhập nhầm</b> để phiếu được đánh dấu đã hủy trong sổ.{' '}
+                <button type="button" className="font-medium underline" onClick={() => (setType('VOID'), setPaymentId(String(sameAsPayment.id)))}>
+                  Chuyển sang hủy phiếu này
+                </button>
+              </Alert>
+            )}
           </>
         )}
         <FormField label="Lý do" htmlFor="adj-reason" required>
@@ -467,7 +487,7 @@ function AdjustSheet({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Hủy
           </Button>
-          <Button disabled={m.isPending || reason.trim().length < 5 || (type === 'VOID' ? !paymentId : !amount)} onClick={() => (setError(null), m.mutate())}>
+          <Button disabled={m.isPending || reason.trim().length < 5 || (type === 'VOID' ? !paymentId : !amount || !method)} onClick={() => (setError(null), m.mutate())}>
             {m.isPending && <Loader2 className="animate-spin" />} Gửi đề nghị
           </Button>
         </SheetFooter>

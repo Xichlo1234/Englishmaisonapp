@@ -142,6 +142,8 @@ const call = (page, method, p, body) =>
     await step('Đề nghị hoàn 200.000 ₫ → chờ duyệt (chưa trừ) → duyệt → còn đã nộp 800.000 ₫', async () => {
       await page.getByRole('button', { name: 'Đề nghị điều chỉnh' }).click();
       await page.fill('#adj-amount', '200000');
+      if (!(await page.getByRole('button', { name: 'Gửi đề nghị' }).isDisabled())) throw new Error('Gửi được đề nghị hoàn tiền khi chưa chọn phương thức');
+      await page.selectOption('#adj-method', 'CASH');
       await page.fill('#adj-reason', 'Nghỉ 2 buổi do ốm, hoàn lại');
       await page.getByRole('button', { name: 'Gửi đề nghị' }).click();
       await page.getByText(/Đã gửi đề nghị/).waitFor();
@@ -158,10 +160,15 @@ const call = (page, method, p, body) =>
       await page.getByText('820.000 ₫').first().waitFor(); // còn nợ = 1.620.000 − 800.000
     });
 
-    await step('Sổ thu: tổng thu 1.000.000 ₫, hoàn/điều chỉnh −200.000 ₫', async () => {
+    const tile = (label, value) => page.locator('div').filter({ hasText: new RegExp(`^${label}${value.replace(/\./g, '\\.')}$`) }).first();
+    await step('Sổ thu dạng nhật ký: phiếu thu 1.000.000 ₫ (+), dòng hoàn tiền −200.000 ₫ (−), thực thu 800.000 ₫', async () => {
       await page.goto(`${BASE}/hoc-phi?tab=ledger`);
-      await page.getByText('Tổng thu (1 phiếu)').waitFor();
-      await page.getByText('-200.000 ₫').waitFor();
+      await tile('Thực thu', '800.000 ₫').waitFor();
+      await tile('Phiếu thu \\(1 phiếu\\)', '1.000.000 ₫').waitFor();
+      await tile('Tiền mặt thực thu', '800.000 ₫').waitFor();
+      const adj = page.getByTestId('ledger-adjustment');
+      await adj.getByText('-200.000 ₫').waitFor();
+      await adj.getByText('Hoàn tiền').waitFor();
       await shot('f05-ledger');
     });
 
@@ -198,6 +205,42 @@ const call = (page, method, p, body) =>
       await page.getByText('Đã hủy hóa đơn').waitFor();
       await page.locator('div').filter({ hasText: /^Còn thiếu—$/ }).first().waitFor();
       await shot('f07-voided');
+    });
+
+    await step('Sau khi hủy: sổ thu đánh dấu phiếu đã hủy + dòng đảo, thực thu không đổi; ẩn được cặp đã hủy; xuất Excel; phiếu in có dấu ĐÃ HỦY', async () => {
+      await page.goto(`${BASE}/hoc-phi?tab=ledger`);
+      await tile('Thực thu', '800.000 ₫').waitFor();
+      const rec = page.getByTestId('ledger-receipt').filter({ hasText: '199.900.000 ₫' });
+      await rec.getByText('Đã hủy', { exact: true }).waitFor();
+      await rec.getByText('HĐ đã hủy').waitFor();
+      if (await rec.getByRole('link', { name: 'Hủy / sửa' }).count()) throw new Error('Phiếu đã hủy vẫn còn nút Hủy / sửa');
+      await page.getByTestId('ledger-adjustment').filter({ hasText: '-199.900.000 ₫' }).waitFor();
+      await shot('f08-ledger-cancelled');
+      await page.getByText('Ẩn các phiếu đã hủy / đã đảo').click();
+      if (await page.getByText('199.900.000 ₫', { exact: false }).count()) throw new Error('Vẫn hiện phiếu đã hủy khi bật ẩn');
+      const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Xuất Excel' }).click()]);
+      if (!/^so-thu-\d{4}-\d{2}-\d{2}-\d{4}-\d{2}-\d{2}\.xlsx$/.test(dl.suggestedFilename())) throw new Error('Tên file Excel: ' + dl.suggestedFilename());
+      const file = path.join(SHOTS, '_so-thu.xlsx');
+      await dl.saveAs(file);
+      if (fs.readFileSync(file).readUInt32LE(0) !== 0x04034b50) throw new Error('File Excel không hợp lệ');
+      fs.rmSync(file);
+      await page.getByText('Ẩn các phiếu đã hủy / đã đảo').click();
+      await rec.getByRole('link', { name: /^PT-/ }).click();
+      await page.getByText('ĐÃ HỦY', { exact: true }).waitFor();
+      await shot('f09-receipt-cancelled');
+    });
+
+    await step('Tổng hợp ngày: thực thu hôm nay 800.000 ₫, có lũy kế + dòng tổng; bấm ngày → mở sổ thu ngày đó', async () => {
+      await page.goto(`${BASE}/hoc-phi?tab=daily`);
+      await tile('Thực thu trong kỳ', '800.000 ₫').waitFor();
+      const today = page.getByTestId('daily-row').filter({ hasText: '800.000 ₫' }).last();
+      await today.waitFor();
+      await shot('f10-daily');
+      const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Xuất Excel' }).click()]);
+      if (!dl.suggestedFilename().startsWith('tong-hop-thu-')) throw new Error('Tên file Excel: ' + dl.suggestedFilename());
+      await today.click();
+      await page.waitForURL(/tab=ledger&from=\d{4}-\d{2}-\d{2}&to=/);
+      await tile('Thực thu', '800.000 ₫').waitFor();
     });
   } finally {
     for (const r of results) console.log(r.join(' '));

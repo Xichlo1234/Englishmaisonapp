@@ -446,26 +446,148 @@ export async function recordPayment(
   return { id: p.id, paymentCode: p.payment_code, duplicate: false };
 }
 
+export type LedgerEntry =
+  | {
+      kind: 'RECEIPT';
+      id: number;
+      at: string;
+      code: string;
+      amount: number;
+      method: string;
+      studentName: string;
+      studentCode: string;
+      invoiceId: number;
+      invoiceCode: string;
+      actor: string;
+      /** VOIDED: cancelled by an approved VOID; REVERSED: its invoice was cancelled after the money was reversed. */
+      status: 'ACTIVE' | 'VOIDED' | 'REVERSED';
+      invoiceCancelled: boolean;
+    }
+  | {
+      kind: 'ADJUSTMENT';
+      id: number;
+      at: string;
+      code: string;
+      amount: number;
+      method: string;
+      studentName: string;
+      studentCode: string;
+      invoiceId: number;
+      invoiceCode: string;
+      actor: string;
+      type: 'REFUND' | 'CORRECTION' | 'VOID';
+      paymentCode: string | null;
+      reason: string;
+    };
+
+const vnDay = (col: SQL) => sql`date(${col}, '+7 hours')`;
+
+/**
+ * Cash journal: receipts on their payment date and approved adjustments (reversals/refunds/corrections) on their
+ * approval date, so a closed day never changes. Totals per method are net of adjustments.
+ */
 export async function listPayments(db: DB, q: { from: string; to: string; method?: string }) {
-  // paid_at lưu UTC; khoảng ngày theo giờ VN
-  const rows = await db.all<{ id: number; paymentCode: string; amount: number; method: string; paidAt: string; studentName: string; studentCode: string; invoiceCode: string; invoiceId: number; receivedBy: string; voided: number }>(sql`
-    SELECT p.id, p.payment_code AS paymentCode, p.amount, p.method, p.paid_at AS paidAt, s.full_name AS studentName, s.student_code AS studentCode,
-           i.invoice_code AS invoiceCode, i.id AS invoiceId, u.full_name AS receivedBy,
-           EXISTS (SELECT 1 FROM payment_adjustments a WHERE a.payment_id = p.id AND a.type = 'VOID' AND a.status = 'APPROVED') AS voided
-      FROM payments p JOIN students s ON s.id = p.student_id JOIN invoices i ON i.id = p.invoice_id JOIN users u ON u.id = p.received_by
-     WHERE date(p.paid_at, '+7 hours') BETWEEN ${q.from} AND ${q.to} ${q.method ? sql`AND p.method = ${q.method}` : sql``}
-     ORDER BY p.paid_at DESC, p.id DESC LIMIT 2000`);
-  const refunds = await db.all<{ total: number }>(sql`
-    SELECT coalesce(sum(a.amount), 0) AS total FROM payment_adjustments a
-     WHERE a.status = 'APPROVED' AND date(a.approved_at, '+7 hours') BETWEEN ${q.from} AND ${q.to}`);
+  const [receipts, adjustments] = await runBatch(db, [
+    sql`SELECT p.id, p.paid_at AS at, p.payment_code AS code, p.amount, p.method, s.full_name AS studentName, s.student_code AS studentCode,
+               i.id AS invoiceId, i.invoice_code AS invoiceCode, u.full_name AS actor, (i.status = 'CANCELLED') AS invoiceCancelled,
+               EXISTS (SELECT 1 FROM payment_adjustments a WHERE a.payment_id = p.id AND a.type = 'VOID' AND a.status = 'APPROVED') AS voided
+          FROM payments p JOIN students s ON s.id = p.student_id JOIN invoices i ON i.id = p.invoice_id JOIN users u ON u.id = p.received_by
+         WHERE ${vnDay(sql`p.paid_at`)} BETWEEN ${q.from} AND ${q.to} ${q.method ? sql`AND p.method = ${q.method}` : sql.empty()}
+         ORDER BY p.paid_at DESC, p.id DESC LIMIT 2000`,
+    sql`SELECT a.id, a.approved_at AS at, a.adjustment_code AS code, a.amount, coalesce(a.method, 'OTHER') AS method, a.type, a.reason,
+               s.full_name AS studentName, s.student_code AS studentCode, i.id AS invoiceId, i.invoice_code AS invoiceCode,
+               u.full_name AS actor, p.payment_code AS paymentCode
+          FROM payment_adjustments a JOIN invoices i ON i.id = a.invoice_id JOIN students s ON s.id = i.student_id
+          JOIN users u ON u.id = a.approved_by LEFT JOIN payments p ON p.id = a.payment_id
+         WHERE a.status = 'APPROVED' AND ${vnDay(sql`a.approved_at`)} BETWEEN ${q.from} AND ${q.to}
+               ${q.method ? sql`AND coalesce(a.method, 'OTHER') = ${q.method}` : sql.empty()}
+         ORDER BY a.approved_at DESC, a.id DESC LIMIT 2000`,
+  ]);
+  type ReceiptRow = Omit<Extract<LedgerEntry, { kind: 'RECEIPT' }>, 'kind' | 'status' | 'invoiceCancelled'> & { voided: number; invoiceCancelled: number };
+  type AdjustmentRow = Omit<Extract<LedgerEntry, { kind: 'ADJUSTMENT' }>, 'kind'>;
+  const entries: LedgerEntry[] = [
+    ...rowsOf<ReceiptRow>(receipts).map(({ voided, invoiceCancelled, ...r }) => ({
+      ...r,
+      kind: 'RECEIPT' as const,
+      status: voided ? ('VOIDED' as const) : invoiceCancelled ? ('REVERSED' as const) : ('ACTIVE' as const),
+      invoiceCancelled: !!invoiceCancelled,
+    })),
+    ...rowsOf<AdjustmentRow>(adjustments).map((r) => ({ ...r, kind: 'ADJUSTMENT' as const })),
+  ].sort((x, y) => (x.at < y.at ? 1 : x.at > y.at ? -1 : y.id - x.id));
+
   const byMethod: Record<string, number> = {};
-  let gross = 0;
-  for (const r of rows) {
-    byMethod[r.method] = (byMethod[r.method] ?? 0) + r.amount;
-    gross += r.amount;
+  let receiptTotal = 0;
+  let adjustmentTotal = 0;
+  let receiptCount = 0;
+  for (const e of entries) {
+    byMethod[e.method] = (byMethod[e.method] ?? 0) + e.amount;
+    if (e.kind === 'RECEIPT') (receiptTotal += e.amount), receiptCount++;
+    else adjustmentTotal += e.amount;
   }
-  const adjustments = refunds[0]?.total ?? 0;
-  return { data: rows, summary: { gross, adjustments, net: gross + adjustments, byMethod, count: rows.length } };
+  return { data: entries, summary: { receipts: receiptTotal, adjustments: adjustmentTotal, net: receiptTotal + adjustmentTotal, byMethod, receiptCount } };
+}
+
+/** One row per day (VN time) in [from, to]: receipts by method, adjustments, net and running net. */
+export async function dailyCollections(db: DB, q: { from: string; to: string }) {
+  const [r, a] = await runBatch(db, [
+    sql`SELECT ${vnDay(sql`paid_at`)} AS day, count(*) AS n,
+               coalesce(sum(CASE WHEN method = 'CASH' THEN amount END), 0) AS cash,
+               coalesce(sum(CASE WHEN method = 'BANK_TRANSFER' THEN amount END), 0) AS bank,
+               coalesce(sum(CASE WHEN method NOT IN ('CASH', 'BANK_TRANSFER') THEN amount END), 0) AS other
+          FROM payments WHERE ${vnDay(sql`paid_at`)} BETWEEN ${q.from} AND ${q.to} GROUP BY day`,
+    sql`SELECT ${vnDay(sql`approved_at`)} AS day, count(*) AS n, coalesce(sum(amount), 0) AS total,
+               coalesce(sum(CASE WHEN method = 'CASH' THEN amount END), 0) AS cash
+          FROM payment_adjustments WHERE status = 'APPROVED' AND ${vnDay(sql`approved_at`)} BETWEEN ${q.from} AND ${q.to} GROUP BY day`,
+  ]);
+  const rec = new Map(rowsOf<{ day: string; n: number; cash: number; bank: number; other: number }>(r).map((x) => [x.day, x]));
+  const adj = new Map(rowsOf<{ day: string; n: number; total: number; cash: number }>(a).map((x) => [x.day, x]));
+  const last = q.to < vnDate() ? q.to : vnDate();
+  const days: {
+    day: string;
+    receiptCount: number;
+    cash: number;
+    bank: number;
+    other: number;
+    adjustmentCount: number;
+    adjustments: number;
+    cashNet: number;
+    net: number;
+    runningNet: number;
+  }[] = [];
+  let running = 0;
+  for (let d = q.from; d <= last; d = addDays(d, 1)) {
+    const x = rec.get(d);
+    const y = adj.get(d);
+    const receipts = (x?.cash ?? 0) + (x?.bank ?? 0) + (x?.other ?? 0);
+    const net = receipts + (y?.total ?? 0);
+    running += net;
+    days.push({
+      day: d,
+      receiptCount: x?.n ?? 0,
+      cash: x?.cash ?? 0,
+      bank: x?.bank ?? 0,
+      other: x?.other ?? 0,
+      adjustmentCount: y?.n ?? 0,
+      adjustments: y?.total ?? 0,
+      cashNet: (x?.cash ?? 0) + (y?.cash ?? 0),
+      net,
+      runningNet: running,
+    });
+  }
+  const sum = (k: 'receiptCount' | 'cash' | 'bank' | 'other' | 'adjustmentCount' | 'adjustments' | 'cashNet' | 'net') => days.reduce((t, d) => t + d[k], 0);
+  return {
+    data: days,
+    totals: {
+      receiptCount: sum('receiptCount'),
+      cash: sum('cash'),
+      bank: sum('bank'),
+      other: sum('other'),
+      adjustmentCount: sum('adjustmentCount'),
+      adjustments: sum('adjustments'),
+      cashNet: sum('cashNet'),
+      net: sum('net'),
+    },
+  };
 }
 
 export async function getReceipt(db: DB, id: number) {
@@ -475,7 +597,8 @@ export async function getReceipt(db: DB, id: number) {
            i.period_label AS periodLabel, i.amount_due AS amountDue, i.amount_paid AS amountPaid,
            (SELECT g.full_name FROM student_guardians sg JOIN guardians g ON g.id = sg.guardian_id WHERE sg.student_id = s.id ORDER BY sg.is_primary DESC LIMIT 1) AS guardianName,
            (SELECT value FROM system_settings WHERE key = 'center_name') AS centerName,
-           EXISTS (SELECT 1 FROM payment_adjustments a WHERE a.payment_id = p.id AND a.type = 'VOID' AND a.status = 'APPROVED') AS voided
+           EXISTS (SELECT 1 FROM payment_adjustments a WHERE a.payment_id = p.id AND a.type = 'VOID' AND a.status = 'APPROVED') AS voided,
+           (i.status = 'CANCELLED') AS invoiceCancelled
       FROM payments p JOIN invoices i ON i.id = p.invoice_id JOIN students s ON s.id = p.student_id JOIN users u ON u.id = p.received_by
      WHERE p.id = ${id}`);
   if (!p) throw Errors.notFound('Phiếu thu');
@@ -489,15 +612,16 @@ export async function requestAdjustment(
   meta: AuditMeta,
   user: AuthUser,
   invoiceId: number,
-  input: { type: 'REFUND' | 'CORRECTION' | 'VOID'; amount?: number; direction?: 'INCREASE' | 'DECREASE'; paymentId?: number; reason: string },
+  input: { type: 'REFUND' | 'CORRECTION' | 'VOID'; amount?: number; direction?: 'INCREASE' | 'DECREASE'; paymentId?: number; method?: string; reason: string },
 ) {
   const [i] = await db.all<{ status: string; amount_due: number; amount_paid: number }>(sql`SELECT status, amount_due, amount_paid FROM invoices WHERE id = ${invoiceId}`);
   if (!i) throw Errors.notFound('Hóa đơn');
   if (i.status === 'DRAFT' || i.status === 'CANCELLED') throw Errors.business('INVALID_INVOICE', 'Chỉ điều chỉnh hóa đơn đã phát hành');
   let amount: number;
+  let method = input.method;
   if (input.type === 'VOID') {
-    const [p] = await db.all<{ amount: number; invoice_id: number; voided: number; pending: number }>(sql`
-      SELECT amount, invoice_id,
+    const [p] = await db.all<{ amount: number; invoice_id: number; method: string; voided: number; pending: number }>(sql`
+      SELECT amount, invoice_id, method,
              EXISTS (SELECT 1 FROM payment_adjustments a WHERE a.payment_id = payments.id AND a.type = 'VOID' AND a.status = 'APPROVED') AS voided,
              EXISTS (SELECT 1 FROM payment_adjustments a WHERE a.payment_id = payments.id AND a.status = 'PENDING') AS pending
         FROM payments WHERE id = ${input.paymentId!}`);
@@ -505,6 +629,7 @@ export async function requestAdjustment(
     if (p.voided) throw Errors.business('ALREADY_VOIDED', 'Giao dịch đã được hủy');
     if (p.pending) throw Errors.business('PENDING_EXISTS', 'Giao dịch đang có phiếu chờ duyệt');
     amount = -p.amount;
+    method = p.method;
   } else if (input.type === 'REFUND') amount = -input.amount!;
   else amount = input.direction === 'INCREASE' ? input.amount! : -input.amount!;
   const next = i.amount_paid + amount;
@@ -512,9 +637,9 @@ export async function requestAdjustment(
   if (next > i.amount_due) throw Errors.business('ADJUST_ABOVE_DUE', 'Số đã thu sau điều chỉnh vượt số phải nộp');
   const today = vnDate().replaceAll('-', '');
   const [row] = await db.all<{ id: number; adjustment_code: string }>(sql`
-    INSERT INTO payment_adjustments (adjustment_code, invoice_id, payment_id, type, amount, reason, status, requested_by, requested_at)
+    INSERT INTO payment_adjustments (adjustment_code, invoice_id, payment_id, type, amount, method, reason, status, requested_by, requested_at)
     VALUES (printf('DC-%s-%04d', ${today}, (SELECT count(*) + 1 FROM payment_adjustments WHERE adjustment_code LIKE ${`DC-${today}-%`})),
-            ${invoiceId}, ${input.paymentId ?? null}, ${input.type}, ${amount}, ${input.reason}, 'PENDING', ${user.id}, ${nowIso()})
+            ${invoiceId}, ${input.paymentId ?? null}, ${input.type}, ${amount}, ${method ?? null}, ${input.reason}, 'PENDING', ${user.id}, ${nowIso()})
     RETURNING id, adjustment_code`);
   await auditInsert(db, meta, { action: 'adjustment.request', entityType: 'invoice', entityId: invoiceId, after: { ...input, amount, adjustmentId: row!.id } });
   return { id: row!.id, adjustmentCode: row!.adjustment_code };

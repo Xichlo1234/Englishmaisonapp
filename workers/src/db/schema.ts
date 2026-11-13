@@ -715,6 +715,8 @@ export const paymentAdjustments = sqliteTable(
       .references(() => invoices.id),
     paymentId: integer('payment_id').references(() => payments.id),
     type: text('type').notNull(),
+    // How the money moved for this entry (CASH/BANK_TRANSFER/OTHER); VOID copies the original payment's method.
+    method: text('method'),
     amount: integer('amount').notNull(),
     reason: text('reason').notNull(),
     status: text('status').notNull().default('PENDING'),
